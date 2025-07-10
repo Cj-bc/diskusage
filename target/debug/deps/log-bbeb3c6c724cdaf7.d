@@ -1,0 +1,10 @@
+C:\Users\neco\Documents\projects\github.com\Cj-bc\diskusage\target\debug\deps\liblog-bbeb3c6c724cdaf7.rmeta: C:\Users\neco\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\log-0.4.27\src\lib.rs C:\Users\neco\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\log-0.4.27\src\macros.rs C:\Users\neco\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\log-0.4.27\src\serde.rs C:\Users\neco\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\log-0.4.27\src\__private_api.rs
+
+C:\Users\neco\Documents\projects\github.com\Cj-bc\diskusage\target\debug\deps\liblog-bbeb3c6c724cdaf7.rlib: C:\Users\neco\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\log-0.4.27\src\lib.rs C:\Users\neco\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\log-0.4.27\src\macros.rs C:\Users\neco\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\log-0.4.27\src\serde.rs C:\Users\neco\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\log-0.4.27\src\__private_api.rs
+
+C:\Users\neco\Documents\projects\github.com\Cj-bc\diskusage\target\debug\deps\log-bbeb3c6c724cdaf7.d: C:\Users\neco\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\log-0.4.27\src\lib.rs C:\Users\neco\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\log-0.4.27\src\macros.rs C:\Users\neco\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\log-0.4.27\src\serde.rs C:\Users\neco\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\log-0.4.27\src\__private_api.rs
+
+C:\Users\neco\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\log-0.4.27\src\lib.rs:
+C:\Users\neco\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\log-0.4.27\src\macros.rs:
+C:\Users\neco\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\log-0.4.27\src\serde.rs:
+C:\Users\neco\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\log-0.4.27\src\__private_api.rs:

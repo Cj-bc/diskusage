@@ -1,0 +1,108 @@
+[package]
+name = "diskusage"
+version = "0.1.0"
+edition = "2021"
+authors = ["Cj-bc <cj.bc-sd@outlook.jp>"]
+description = "A cross-platform GUI application for visualizing directory space usage"
+repository = "https://github.com/Cj-bc/diskusage"
+license = "MIT"
+keywords = ["gui", "filesystem", "visualization", "disk-usage"]
+categories = ["filesystem", "gui", "visualization"]
+readme = "README.md"
+
+[dependencies]
+# GUI Framework
+egui = "0.24"
+eframe = { version = "0.24", features = ["persistence"] }
+
+# File dialogs
+rfd = "0.12"
+
+# Async runtime
+tokio = { version = "1.0", features = ["full"] }
+
+# Serialization
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+toml = "0.8"
+
+# File system utilities
+dirs = "5.0"
+walkdir = "2.4"
+
+# Error handling
+thiserror = "1.0"
+anyhow = "1.0"
+
+# Logging
+log = "0.4"
+env_logger = "0.10"
+
+# Performance
+rayon = "1.7"
+
+# Time handling
+chrono = { version = "0.4", features = ["serde"] }
+
+# Platform-specific dependencies
+[target.'cfg(windows)'.dependencies]
+winreg = "0.50"
+winapi = { version = "0.3", features = ["winuser", "shellapi", "commdlg"] }
+windows = { version = "0.52", features = [
+    "Win32_Foundation",
+    "Win32_System_SystemInformation",
+    "Win32_Storage_FileSystem",
+    "Win32_System_Threading",
+    "Win32_System_Memory",
+] }
+
+[target.'cfg(unix)'.dependencies]
+libc = "0.2"
+nix = "0.27"
+
+[dev-dependencies]
+criterion = { version = "0.5", features = ["html_reports"] }
+tempfile = "3.8"
+proptest = "1.4"
+
+[build-dependencies]
+vergen = { version = "8.2", features = ["build", "cargo", "git", "gitcl", "rustc"] }
+
+# Profile configurations
+[profile.dev]
+opt-level = 0
+debug = true
+split-debuginfo = "unpacked"
+debug-assertions = true
+overflow-checks = true
+lto = false
+panic = "unwind"
+incremental = true
+codegen-units = 256
+rpath = false
+
+[profile.release]
+opt-level = 3
+debug = false
+split-debuginfo = "packed"
+debug-assertions = false
+overflow-checks = false
+lto = true
+panic = "abort"
+incremental = false
+codegen-units = 1
+rpath = false
+
+[profile.bench]
+inherits = "release"
+debug = true
+
+# Benchmarks will be added later
+# [[bench]]
+# name = "directory_scan"
+# harness = false
+
+[features]
+default = []
+profiling = []
+debug-ui = []
