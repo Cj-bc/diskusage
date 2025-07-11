@@ -4,10 +4,15 @@ use std::path::PathBuf;
 use crate::data::{DirectoryNode, ScanProgress};
 use crate::fs::Scanner;
 use crate::gui::AppState;
+use crate::gui::views::{TreeViewData, TreeViewRenderer, TreeMapData, TreeMapRenderer};
 
 pub struct DiskUsageApp {
     state: AppState,
     scanner: Scanner,
+    tree_view_renderer: TreeViewRenderer,
+    tree_view_data: Option<TreeViewData>,
+    tree_map_renderer: TreeMapRenderer,
+    tree_map_data: Option<TreeMapData>,
 }
 
 impl DiskUsageApp {
@@ -21,6 +26,10 @@ impl DiskUsageApp {
         Self {
             state,
             scanner: Scanner::new(),
+            tree_view_renderer: TreeViewRenderer::new(),
+            tree_view_data: None,
+            tree_map_renderer: TreeMapRenderer::new(),
+            tree_map_data: None,
         }
     }
 
@@ -34,6 +43,9 @@ impl DiskUsageApp {
         if let Some(result) = self.scanner.take_result() {
             match result {
                 Ok(scan_result) => {
+                    // Create TreeView and TreeMap data
+                    self.tree_view_data = Some(TreeViewData::new(scan_result.clone()));
+                    self.tree_map_data = Some(TreeMapData::new(scan_result.clone()));
                     self.state.set_scan_result(Some(scan_result));
                     self.state.set_scanning(false);
                     self.state.clear_error();
@@ -41,6 +53,8 @@ impl DiskUsageApp {
                 Err(error) => {
                     self.state.set_error(format!("Scan failed: {}", error));
                     self.state.set_scanning(false);
+                    self.tree_view_data = None;
+                    self.tree_map_data = None;
                 }
             }
             ctx.request_repaint();
@@ -211,14 +225,58 @@ impl eframe::App for DiskUsageApp {
             if let Some(scan_result) = &self.state.scan_result {
                 match self.state.view_mode {
                     crate::gui::ViewMode::TreeMap => {
-                        ui.heading("TreeMap View");
-                        ui.label("TreeMap visualization will be implemented here");
-                        // TODO: Show TreeMap visualization
+                        if let Some(ref mut tree_map_data) = self.tree_map_data {
+                            let response = self.tree_map_renderer.render(ui, tree_map_data);
+                            
+                            // Handle TreeMap interactions
+                            if let Some(clicked_path) = response.clicked {
+                                // Handle item selection
+                                log::info!("Selected: {}", clicked_path.display());
+                            }
+                            
+                            if let Some(double_clicked_path) = response.double_clicked {
+                                // Handle navigation on double-click
+                                log::info!("Navigate to: {}", double_clicked_path.display());
+                                tree_map_data.navigate_to(double_clicked_path);
+                            }
+                            
+                            if let Some(right_clicked_path) = response.right_clicked {
+                                // Handle context menu
+                                log::info!("Context menu for: {}", right_clicked_path.display());
+                                // TODO: Show context menu
+                            }
+                        } else {
+                            ui.centered_and_justified(|ui| {
+                                ui.label("No data available for TreeMap view");
+                            });
+                        }
                     }
                     crate::gui::ViewMode::TreeView => {
-                        ui.heading("Tree View");
-                        ui.label("Tree view will be implemented here");
-                        // TODO: Show Tree visualization
+                        if let Some(ref mut tree_data) = self.tree_view_data {
+                            let response = self.tree_view_renderer.render(ui, tree_data);
+                            
+                            // Handle TreeView interactions
+                            if let Some(clicked_path) = response.clicked {
+                                // Handle item selection
+                                log::info!("Selected: {}", clicked_path.display());
+                            }
+                            
+                            if let Some(double_clicked_path) = response.double_clicked {
+                                // Handle navigation on double-click
+                                log::info!("Navigate to: {}", double_clicked_path.display());
+                                // TODO: Implement navigation to subdirectory
+                            }
+                            
+                            if let Some(right_clicked_path) = response.right_clicked {
+                                // Handle context menu
+                                log::info!("Context menu for: {}", right_clicked_path.display());
+                                // TODO: Show context menu
+                            }
+                        } else {
+                            ui.centered_and_justified(|ui| {
+                                ui.label("No data available for tree view");
+                            });
+                        }
                     }
                     crate::gui::ViewMode::PieChart => {
                         ui.heading("Pie Chart View");
