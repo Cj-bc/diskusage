@@ -94,7 +94,7 @@ impl TreeViewRenderer {
         ui.horizontal(|ui| {
             ui.label("Sort by:");
             
-            egui::ComboBox::from_label("")
+            egui::ComboBox::from_id_source("sort_by_combo")
                 .selected_text(format!("{:?}", data.sort_by))
                 .show_ui(ui, |ui| {
                     ui.selectable_value(&mut data.sort_by, SortBy::Name, "Name");
@@ -116,7 +116,7 @@ impl TreeViewRenderer {
             ui.separator();
 
             ui.label("Size format:");
-            egui::ComboBox::from_label("")
+            egui::ComboBox::from_id_source("size_format_combo")
                 .selected_text(format!("{:?}", data.size_format))
                 .show_ui(ui, |ui| {
                     ui.selectable_value(&mut data.size_format, SizeFormat::Auto, "Auto");
