@@ -67,6 +67,7 @@ proptest = "1.4"
 
 [build-dependencies]
 vergen = { version = "8.2", features = ["build", "cargo", "git", "gitcl", "rustc"] }
+pkg-config = "0.3"
 
 # Profile configurations
 [profile.dev]
@@ -106,3 +107,5 @@ debug = true
 default = []
 profiling = []
 debug-ui = []
+bundle = []
+embed_resources = []

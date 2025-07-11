@@ -1061,6 +1061,7 @@ dependencies = [
  "libc",
  "log",
  "nix 0.27.1",
+ "pkg-config",
  "proptest",
  "rayon",
  "rfd",
