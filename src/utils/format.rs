@@ -86,7 +86,7 @@ fn format_decimal_size(size: u64) -> String {
 
 pub fn format_duration(duration: Duration) -> String {
     let total_seconds = duration.as_secs();
-    
+
     if total_seconds < 60 {
         format!("{}.{:02}s", total_seconds, duration.subsec_millis() / 10)
     } else if total_seconds < 3600 {

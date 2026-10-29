@@ -59,7 +59,7 @@ impl ProgressBar {
             let animation_progress = (time * 2.0).sin() * 0.5 + 0.5;
             let bar_width = rect.width() * 0.3;
             let bar_x = rect.min.x + (rect.width() - bar_width) * animation_progress;
-            
+
             let progress_rect = egui::Rect::from_min_size(
                 egui::Pos2::new(bar_x, rect.min.y),
                 egui::Vec2::new(bar_width, rect.height()),
@@ -73,10 +73,8 @@ impl ProgressBar {
         } else {
             // Normal progress bar
             let progress_width = rect.width() * self.progress;
-            let progress_rect = egui::Rect::from_min_size(
-                rect.min,
-                egui::Vec2::new(progress_width, rect.height()),
-            );
+            let progress_rect =
+                egui::Rect::from_min_size(rect.min, egui::Vec2::new(progress_width, rect.height()));
 
             ui.painter().rect_filled(
                 progress_rect,

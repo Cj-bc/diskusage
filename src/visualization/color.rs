@@ -9,4 +9,3 @@ pub enum ColorScheme {
     TypeBased,
     Custom(Vec<Color32>),
 }
-

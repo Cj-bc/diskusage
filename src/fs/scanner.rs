@@ -61,7 +61,10 @@ impl Scanner {
             let _ = sender.send(ScanMessage::Completed(result));
         });
 
-        self.active = Some(ActiveScan { receiver, cancel_flag });
+        self.active = Some(ActiveScan {
+            receiver,
+            cancel_flag,
+        });
     }
 
     /// Asks the running scan, if any, to stop. Its result is discarded.
@@ -181,7 +184,11 @@ fn scan_directory(
         node.last_modified = modified;
     }
 
-    if context.options.max_depth.is_some_and(|max_depth| depth >= max_depth) {
+    if context
+        .options
+        .max_depth
+        .is_some_and(|max_depth| depth >= max_depth)
+    {
         return Ok(node);
     }
 
@@ -278,7 +285,10 @@ mod tests {
         fs::create_dir_all(&nested).unwrap();
         fs::write(nested.join("deep.bin"), [0u8; 10]).unwrap();
 
-        let options = ScanOptions { max_depth: Some(1), ..Default::default() };
+        let options = ScanOptions {
+            max_depth: Some(1),
+            ..Default::default()
+        };
         let result = scan_blocking(dir.path(), options).unwrap();
 
         assert_eq!(result.total_size, 0);
@@ -300,7 +310,12 @@ mod tests {
         let dir = tempfile::tempdir().unwrap();
         let (sender, _receiver) = mpsc::channel();
 
-        let result = scan(dir.path(), &ScanOptions::default(), &sender, &AtomicBool::new(true));
+        let result = scan(
+            dir.path(),
+            &ScanOptions::default(),
+            &sender,
+            &AtomicBool::new(true),
+        );
 
         assert!(matches!(result, Err(ScanError::Cancelled)));
     }

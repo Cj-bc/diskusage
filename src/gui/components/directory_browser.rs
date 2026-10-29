@@ -27,25 +27,25 @@ impl DirectoryBrowser {
                 if ui.button("⬅").clicked() && self.can_go_back() {
                     selected_path = self.go_back();
                 }
-                
+
                 if ui.button("➡").clicked() && self.can_go_forward() {
                     selected_path = self.go_forward();
                 }
-                
+
                 if ui.button("⬆").clicked() {
                     if let Some(parent) = self.current_path.parent() {
                         selected_path = Some(parent.to_path_buf());
                     }
                 }
-                
+
                 ui.separator();
-                
+
                 if ui.button("🏠").clicked() {
                     if let Some(home) = dirs::home_dir() {
                         selected_path = Some(home);
                     }
                 }
-                
+
                 if ui.button("💽").clicked() {
                     // Show drives/mounts
                     self.show_drives_menu(ui);
@@ -63,16 +63,19 @@ impl DirectoryBrowser {
             // Favorites section
             ui.collapsing("Favorites", |ui| {
                 for favorite in &self.favorites.clone() {
-                    if ui.button(favorite.file_name().unwrap_or_default().to_string_lossy()).clicked() {
+                    if ui
+                        .button(favorite.file_name().unwrap_or_default().to_string_lossy())
+                        .clicked()
+                    {
                         selected_path = Some(favorite.clone());
                     }
                 }
-                
+
                 ui.horizontal(|ui| {
                     if ui.button("Add Current").clicked() {
                         self.add_favorite(self.current_path.clone());
                     }
-                    
+
                     if ui.button("Manage").clicked() {
                         // TODO: Show favorites management dialog
                     }
@@ -88,9 +91,9 @@ impl DirectoryBrowser {
                         .filter_map(|entry| entry.ok())
                         .filter(|entry| entry.file_type().map(|ft| ft.is_dir()).unwrap_or(false))
                         .collect();
-                    
+
                     dirs.sort_by_key(|a| a.file_name());
-                    
+
                     for entry in dirs {
                         let name = entry.file_name().to_string_lossy().to_string();
                         if ui.selectable_label(false, format!("📁 {}", name)).clicked() {
@@ -115,7 +118,7 @@ impl DirectoryBrowser {
             self.history.push(self.current_path.clone());
             self.history_index = self.history.len() - 1;
         }
-        
+
         self.current_path = path;
     }
 
@@ -164,14 +167,13 @@ impl DirectoryBrowser {
                 for drive in 'A'..='Z' {
                     let drive_path = format!("{}:\\", drive);
                     let path = PathBuf::from(&drive_path);
-                    if path.exists()
-                        && ui.button(&drive_path).clicked() {
-                            // TODO: Navigate to drive
-                            ui.close_menu();
-                        }
+                    if path.exists() && ui.button(&drive_path).clicked() {
+                        // TODO: Navigate to drive
+                        ui.close_menu();
+                    }
                 }
             }
-            
+
             #[cfg(unix)]
             {
                 // Show common Unix mount points

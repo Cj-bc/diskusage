@@ -24,7 +24,6 @@ pub struct TreeViewResponse {
     pub collapsed: Vec<PathBuf>,
 }
 
-
 pub struct TreeViewRenderer {
     pub indent_size: f32,
     pub line_height: f32,
@@ -83,7 +82,7 @@ impl TreeViewRenderer {
     fn render_header(&self, ui: &mut egui::Ui, data: &mut TreeViewData) {
         ui.horizontal(|ui| {
             ui.label("Sort by:");
-            
+
             egui::ComboBox::from_id_source("sort_by_combo")
                 .selected_text(format!("{:?}", data.sort_by))
                 .show_ui(ui, |ui| {
@@ -93,10 +92,13 @@ impl TreeViewRenderer {
                     ui.selectable_value(&mut data.sort_by, SortBy::Type, "Type");
                 });
 
-            if ui.button(match data.sort_order {
-                SortOrder::Ascending => "↑ Asc",
-                SortOrder::Descending => "↓ Desc",
-            }).clicked() {
+            if ui
+                .button(match data.sort_order {
+                    SortOrder::Ascending => "↑ Asc",
+                    SortOrder::Descending => "↓ Desc",
+                })
+                .clicked()
+            {
                 data.sort_order = match data.sort_order {
                     SortOrder::Ascending => SortOrder::Descending,
                     SortOrder::Descending => SortOrder::Ascending,
@@ -117,7 +119,7 @@ impl TreeViewRenderer {
 
             ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
                 ui.label(format!(
-                    "Total: {} ({} files, {} dirs)", 
+                    "Total: {} ({} files, {} dirs)",
                     format_size_with_format(data.scan_result.total_size, data.size_format),
                     data.scan_result.total_files,
                     data.scan_result.total_dirs
@@ -194,12 +196,12 @@ impl TreeViewRenderer {
 
                 // Name (clickable)
                 let name_response = ui.selectable_label(is_selected, &node.name);
-                
+
                 if name_response.clicked() {
                     data.selected_path = Some(node.path.clone());
                     response.clicked = Some(node.path.clone());
                 }
-                
+
                 if name_response.double_clicked() {
                     response.double_clicked = Some(node.path.clone());
                     // Auto-expand on double-click
@@ -242,7 +244,12 @@ impl TreeViewRenderer {
         }
     }
 
-    fn sort_children(&self, children: &mut [&DirectoryNode], sort_by: SortBy, sort_order: SortOrder) {
+    fn sort_children(
+        &self,
+        children: &mut [&DirectoryNode],
+        sort_by: SortBy,
+        sort_order: SortOrder,
+    ) {
         children.sort_by(|a, b| {
             let comparison = match sort_by {
                 SortBy::Name => a.name.to_lowercase().cmp(&b.name.to_lowercase()),
@@ -312,6 +319,7 @@ impl TreeViewData {
     pub fn collapse_all(&mut self) {
         self.expanded_paths.clear();
         // Keep root expanded
-        self.expanded_paths.insert(self.scan_result.root.path.clone());
+        self.expanded_paths
+            .insert(self.scan_result.root.path.clone());
     }
 }

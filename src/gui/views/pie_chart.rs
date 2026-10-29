@@ -99,13 +99,16 @@ impl PieChartRenderer {
 
         let slices = calculate_slices(data);
         let center = rect.center();
-        let radius = (rect.width().min(rect.height()) / 2.0 - LABEL_MARGIN).max(self.center_radius + 10.0);
+        let radius =
+            (rect.width().min(rect.height()) / 2.0 - LABEL_MARGIN).max(self.center_radius + 10.0);
 
         // Hit-test first so this frame already draws the hover state.
         let hovered_slice = interact_response
             .hover_pos()
             .and_then(|pos| self.slice_at_position(pos, center, radius, &slices));
-        data.hovered_path = hovered_slice.and_then(PieSlice::path).map(Path::to_path_buf);
+        data.hovered_path = hovered_slice
+            .and_then(PieSlice::path)
+            .map(Path::to_path_buf);
 
         for slice in &slices {
             self.render_slice(ui, slice, center, radius, data);
@@ -169,7 +172,14 @@ impl PieChartRenderer {
         });
     }
 
-    fn render_slice(&self, ui: &mut egui::Ui, slice: &PieSlice, center: Pos2, radius: f32, data: &PieChartData) {
+    fn render_slice(
+        &self,
+        ui: &mut egui::Ui,
+        slice: &PieSlice,
+        center: Pos2,
+        radius: f32,
+        data: &PieChartData,
+    ) {
         let is_selected = slice.path().is_some() && slice.path() == data.selected_path.as_deref();
         let is_hovered = slice.path().is_some() && slice.path() == data.hovered_path.as_deref();
 
@@ -184,7 +194,9 @@ impl PieChartRenderer {
 
         self.draw_pie_slice(ui, center, slice_radius, slice);
 
-        if data.show_labels && slice.end_angle - slice.start_angle > self.min_label_size.to_radians() {
+        if data.show_labels
+            && slice.end_angle - slice.start_angle > self.min_label_size.to_radians()
+        {
             self.draw_slice_label(ui, slice, center, slice_radius, data.show_percentages);
         }
     }
@@ -198,7 +210,10 @@ impl PieChartRenderer {
         let angle_step = sweep / segments as f32;
         let point_at = |radius: f32, i: usize| {
             let angle = slice.start_angle + i as f32 * angle_step;
-            Pos2::new(center.x + radius * angle.cos(), center.y + radius * angle.sin())
+            Pos2::new(
+                center.x + radius * angle.cos(),
+                center.y + radius * angle.sin(),
+            )
         };
 
         // Inner arc forwards, then the outer arc backwards, closes the ring segment
@@ -214,7 +229,14 @@ impl PieChartRenderer {
         ));
     }
 
-    fn draw_slice_label(&self, ui: &mut egui::Ui, slice: &PieSlice, center: Pos2, radius: f32, show_percentage: bool) {
+    fn draw_slice_label(
+        &self,
+        ui: &mut egui::Ui,
+        slice: &PieSlice,
+        center: Pos2,
+        radius: f32,
+        show_percentage: bool,
+    ) {
         let mid_angle = (slice.start_angle + slice.end_angle) / 2.0;
         let label_radius = radius * self.label_distance;
         let label_pos = Pos2::new(
@@ -239,9 +261,13 @@ impl PieChartRenderer {
     }
 
     fn render_center_info(&self, ui: &mut egui::Ui, center: Pos2, data: &PieChartData) {
-        ui.painter().circle_filled(center, self.center_radius, Color32::WHITE);
         ui.painter()
-            .circle_stroke(center, self.center_radius, egui::Stroke::new(2.0_f32, Color32::BLACK));
+            .circle_filled(center, self.center_radius, Color32::WHITE);
+        ui.painter().circle_stroke(
+            center,
+            self.center_radius,
+            egui::Stroke::new(2.0_f32, Color32::BLACK),
+        );
 
         let current_node = data.current_node();
         let center_text = format!(
@@ -259,7 +285,13 @@ impl PieChartRenderer {
         );
     }
 
-    fn slice_at_position<'a>(&self, pos: Pos2, center: Pos2, radius: f32, slices: &'a [PieSlice]) -> Option<&'a PieSlice> {
+    fn slice_at_position<'a>(
+        &self,
+        pos: Pos2,
+        center: Pos2,
+        radius: f32,
+        slices: &'a [PieSlice],
+    ) -> Option<&'a PieSlice> {
         let offset = pos - center;
         let distance = offset.length();
         if distance < self.center_radius || distance > radius {
@@ -268,7 +300,11 @@ impl PieChartRenderer {
 
         // Slices run clockwise from the top, i.e. over [-PI/2, 3PI/2)
         let angle = offset.y.atan2(offset.x);
-        let angle = if angle < -PI / 2.0 { angle + TAU } else { angle };
+        let angle = if angle < -PI / 2.0 {
+            angle + TAU
+        } else {
+            angle
+        };
 
         slices.iter().find(|slice| slice.contains_angle(angle))
     }
@@ -294,7 +330,11 @@ fn calculate_slices(data: &PieChartData) -> Vec<PieSlice> {
         return Vec::new();
     }
 
-    let mut children: Vec<&DirectoryNode> = current_node.children.iter().filter(|child| child.size > 0).collect();
+    let mut children: Vec<&DirectoryNode> = current_node
+        .children
+        .iter()
+        .filter(|child| child.size > 0)
+        .collect();
     children.sort_by_key(|child| std::cmp::Reverse(child.size));
 
     // Reserve one slot for "Other" when not every child fits
@@ -430,13 +470,23 @@ mod tests {
     #[test]
     fn truncate_chars_handles_multibyte_names() {
         assert_eq!(truncate_chars("短い", 10), "短い");
-        assert_eq!(truncate_chars("ドキュメントとダウンロード", 10), "ドキュメントとダウ…");
+        assert_eq!(
+            truncate_chars("ドキュメントとダウンロード", 10),
+            "ドキュメントとダウ…"
+        );
     }
 
     #[test]
     fn slices_cover_the_whole_circle() {
         // 40 bytes of files sit directly in the root, outside any child
-        let root = directory("root", 100, vec![directory("root/a", 40, vec![]), directory("root/b", 20, vec![])]);
+        let root = directory(
+            "root",
+            100,
+            vec![
+                directory("root/a", 40, vec![]),
+                directory("root/b", 20, vec![]),
+            ],
+        );
         let data = PieChartData::new(Arc::new(crate::data::ScanResult::new(root)));
 
         let slices = calculate_slices(&data);
@@ -456,7 +506,15 @@ mod tests {
 
     #[test]
     fn navigate_up_stops_at_root() {
-        let root = directory("root", 10, vec![directory("root/a", 10, vec![directory("root/a/b", 10, vec![])])]);
+        let root = directory(
+            "root",
+            10,
+            vec![directory(
+                "root/a",
+                10,
+                vec![directory("root/a/b", 10, vec![])],
+            )],
+        );
         let mut data = PieChartData::new(Arc::new(crate::data::ScanResult::new(root)));
 
         data.navigate_to(PathBuf::from("root/a"));

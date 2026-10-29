@@ -14,7 +14,7 @@ pub fn can_read(path: &Path) -> bool {
                 // Windows: if we can get metadata, we can usually read
                 true
             }
-        },
+        }
         Err(_) => false,
     }
 }
@@ -26,10 +26,11 @@ pub fn is_hidden(path: &Path) -> Result<bool, std::io::Error> {
         let metadata = std::fs::metadata(path)?;
         Ok(metadata.file_attributes() & 0x2 != 0)
     }
-    
+
     #[cfg(unix)]
     {
-        Ok(path.file_name()
+        Ok(path
+            .file_name()
             .and_then(|name| name.to_str())
             .map(|name| name.starts_with('.'))
             .unwrap_or(false))

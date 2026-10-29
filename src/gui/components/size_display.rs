@@ -38,17 +38,28 @@ impl SizeDisplay {
         format: SizeFormat,
     ) {
         ui.horizontal(|ui| {
-            ui.label(format!("{}: {}", label1, crate::utils::format_size_with_format(size1, format)));
+            ui.label(format!(
+                "{}: {}",
+                label1,
+                crate::utils::format_size_with_format(size1, format)
+            ));
             ui.separator();
-            ui.label(format!("{}: {}", label2, crate::utils::format_size_with_format(size2, format)));
-            
+            ui.label(format!(
+                "{}: {}",
+                label2,
+                crate::utils::format_size_with_format(size2, format)
+            ));
+
             if size1 > 0 && size2 > 0 {
                 let ratio = size1 as f64 / size2 as f64;
-                ui.label(format!("({}x)", if ratio >= 1.0 { 
-                    format!("{:.1}", ratio) 
-                } else { 
-                    format!("1/{:.1}", 1.0/ratio) 
-                }));
+                ui.label(format!(
+                    "({}x)",
+                    if ratio >= 1.0 {
+                        format!("{:.1}", ratio)
+                    } else {
+                        format!("1/{:.1}", 1.0 / ratio)
+                    }
+                ));
             }
         });
     }

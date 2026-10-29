@@ -36,7 +36,6 @@ pub struct TreeMapResponse {
     pub pan_changed: bool,
 }
 
-
 pub struct TreeMapRenderer {
     pub min_rect_size: f32,
     pub border_width: f32,
@@ -64,18 +63,16 @@ impl TreeMapRenderer {
 
     pub fn render(&mut self, ui: &mut egui::Ui, data: &mut TreeMapData) -> TreeMapResponse {
         let mut response = TreeMapResponse::default();
-        
+
         // Header with controls
         self.render_header(ui, data);
-        
+
         ui.separator();
 
         // Main treemap area
         let available_rect = ui.available_rect_before_wrap();
-        let (rect, interact_response) = ui.allocate_exact_size(
-            available_rect.size(),
-            Sense::click_and_drag(),
-        );
+        let (rect, interact_response) =
+            ui.allocate_exact_size(available_rect.size(), Sense::click_and_drag());
 
         // Handle zoom and pan
         if interact_response.dragged() {
@@ -127,7 +124,7 @@ impl TreeMapRenderer {
     fn render_header(&self, ui: &mut egui::Ui, data: &mut TreeMapData) {
         ui.horizontal(|ui| {
             ui.label(format!("Path: {}", data.current_path.display()));
-            
+
             ui.separator();
 
             if ui
@@ -157,7 +154,7 @@ impl TreeMapRenderer {
 
     fn calculate_layout(&self, data: &TreeMapData, bounds: Rect) -> Vec<TreeMapRect> {
         let mut rectangles = Vec::new();
-        
+
         // Apply zoom and pan transformations
         let transformed_bounds = Rect::from_min_size(
             bounds.min + data.pan_offset,
@@ -195,10 +192,10 @@ impl TreeMapRenderer {
                 rect: bounds,
                 path: node.path.clone(),
                 size: node.size,
-                percentage: if total_size > 0 { 
-                    node.size as f32 / total_size as f32 * 100.0 
-                } else { 
-                    0.0 
+                percentage: if total_size > 0 {
+                    node.size as f32 / total_size as f32 * 100.0
+                } else {
+                    0.0
                 },
                 color: self.get_color_for_depth(depth),
                 label: node.name.clone(),
@@ -209,10 +206,12 @@ impl TreeMapRenderer {
         }
 
         // Filter and sort children by size
-        let mut visible_children: Vec<_> = node.children.iter()
+        let mut visible_children: Vec<_> = node
+            .children
+            .iter()
             .filter(|child| child.size > 0)
             .collect();
-        
+
         visible_children.sort_by_key(|child| std::cmp::Reverse(child.size));
 
         if visible_children.is_empty() {
@@ -228,10 +227,10 @@ impl TreeMapRenderer {
                     rect: *rect,
                     path: child.path.clone(),
                     size: child.size,
-                    percentage: if total_size > 0 { 
-                        child.size as f32 / total_size as f32 * 100.0 
-                    } else { 
-                        0.0 
+                    percentage: if total_size > 0 {
+                        child.size as f32 / total_size as f32 * 100.0
+                    } else {
+                        0.0
                     },
                     color: self.get_color_for_depth(depth + 1),
                     label: child.name.clone(),
@@ -268,11 +267,8 @@ impl TreeMapRenderer {
         }
 
         // Draw filled rectangle
-        ui.painter().rect_filled(
-            treemap_rect.rect,
-            egui::Rounding::same(0.0),
-            color,
-        );
+        ui.painter()
+            .rect_filled(treemap_rect.rect, egui::Rounding::same(0.0), color);
 
         // Draw border
         if self.border_width > 0.0 {
@@ -284,10 +280,10 @@ impl TreeMapRenderer {
         }
 
         // Draw label if rectangle is large enough
-        if self.show_labels && 
-           treemap_rect.rect.width() > self.label_threshold && 
-           treemap_rect.rect.height() > self.label_threshold {
-            
+        if self.show_labels
+            && treemap_rect.rect.width() > self.label_threshold
+            && treemap_rect.rect.height() > self.label_threshold
+        {
             let text = if self.show_sizes {
                 format!("{}\n{}", treemap_rect.label, format_size(treemap_rect.size))
             } else {
@@ -315,7 +311,8 @@ impl TreeMapRenderer {
 
     fn get_path_at_position(&self, pos: Pos2, rectangles: &[TreeMapRect]) -> Option<PathBuf> {
         // Find the smallest rectangle that contains the position
-        rectangles.iter()
+        rectangles
+            .iter()
             .filter(|rect| rect.rect.contains(pos))
             .min_by(|a, b| a.rect.area().total_cmp(&b.rect.area()))
             .map(|rect| rect.path.clone())
@@ -325,7 +322,7 @@ impl TreeMapRenderer {
         let hue = (depth as f32 * 60.0) % 360.0;
         let saturation = 0.6 + (depth as f32 * 0.1) % 0.3;
         let value = 0.8 - (depth as f32 * 0.05) % 0.3;
-        
+
         hsv_to_rgb(hue, saturation, value)
     }
 }
@@ -404,8 +401,12 @@ fn squarified_layout(children: &[&DirectoryNode], bounds: Rect, total_size: u64)
 
         // Grow the row while doing so makes its worst aspect ratio better.
         let mut row_len = 1;
-        let mut best_ratio =
-            worst_aspect_ratio(&remaining_children[..1], remaining_bounds, remaining_size, vertical);
+        let mut best_ratio = worst_aspect_ratio(
+            &remaining_children[..1],
+            remaining_bounds,
+            remaining_size,
+            vertical,
+        );
         while row_len < remaining_children.len() {
             let ratio = worst_aspect_ratio(
                 &remaining_children[..=row_len],
@@ -435,7 +436,12 @@ fn squarified_layout(children: &[&DirectoryNode], bounds: Rect, total_size: u64)
 
 /// Worst aspect ratio among the rectangles `row` would get if laid out as
 /// one strip of `bounds`, where `bounds` represents `bounds_size` bytes.
-fn worst_aspect_ratio(row: &[&DirectoryNode], bounds: Rect, bounds_size: u64, vertical: bool) -> f32 {
+fn worst_aspect_ratio(
+    row: &[&DirectoryNode],
+    bounds: Rect,
+    bounds_size: u64,
+    vertical: bool,
+) -> f32 {
     let row_size: u64 = row.iter().map(|node| node.size).sum();
     let row_area = (row_size as f32 / bounds_size as f32) * bounds.area();
     let side_length = if vertical {
@@ -455,7 +461,12 @@ fn worst_aspect_ratio(row: &[&DirectoryNode], bounds: Rect, bounds_size: u64, ve
 
 /// Lays `row` out as one strip along the short side of `bounds` and returns
 /// the strip's rectangles together with the bounds left over.
-fn layout_row(row: &[&DirectoryNode], bounds: Rect, bounds_size: u64, vertical: bool) -> (Vec<Rect>, Rect) {
+fn layout_row(
+    row: &[&DirectoryNode],
+    bounds: Rect,
+    bounds_size: u64,
+    vertical: bool,
+) -> (Vec<Rect>, Rect) {
     let row_size: u64 = row.iter().map(|node| node.size).sum();
     let row_ratio = row_size as f32 / bounds_size as f32;
     let mut offset = 0.0f32;
@@ -474,7 +485,10 @@ fn layout_row(row: &[&DirectoryNode], bounds: Rect, bounds_size: u64, vertical: 
                 rect
             })
             .collect();
-        let rest = Rect::from_min_max(Pos2::new(bounds.min.x + row_width, bounds.min.y), bounds.max);
+        let rest = Rect::from_min_max(
+            Pos2::new(bounds.min.x + row_width, bounds.min.y),
+            bounds.max,
+        );
         (rects, rest)
     } else {
         let row_height = bounds.height() * row_ratio;
@@ -490,7 +504,10 @@ fn layout_row(row: &[&DirectoryNode], bounds: Rect, bounds_size: u64, vertical: 
                 rect
             })
             .collect();
-        let rest = Rect::from_min_max(Pos2::new(bounds.min.x, bounds.min.y + row_height), bounds.max);
+        let rest = Rect::from_min_max(
+            Pos2::new(bounds.min.x, bounds.min.y + row_height),
+            bounds.max,
+        );
         (rects, rest)
     }
 }
@@ -506,7 +523,10 @@ mod tests {
     }
 
     fn assert_close(actual: f32, expected: f32) {
-        assert!((actual - expected).abs() < 0.01, "expected {expected}, got {actual}");
+        assert!(
+            (actual - expected).abs() < 0.01,
+            "expected {expected}, got {actual}"
+        );
     }
 
     #[test]
@@ -520,7 +540,10 @@ mod tests {
         assert_eq!(rects.len(), nodes.len());
         for (node, rect) in nodes.iter().zip(&rects) {
             assert_close(rect.area(), bounds.area() * node.size as f32 / 100.0);
-            assert!(bounds.expand(0.01).contains_rect(*rect), "{rect:?} escapes bounds");
+            assert!(
+                bounds.expand(0.01).contains_rect(*rect),
+                "{rect:?} escapes bounds"
+            );
         }
     }
 

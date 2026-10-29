@@ -67,15 +67,20 @@ impl DirectoryNode {
             .iter()
             .map(|child| child.depth())
             .max()
-            .unwrap_or(0) + 1
+            .unwrap_or(0)
+            + 1
     }
 
     pub fn sort_by_size(&mut self, ascending: bool) {
         self.children.sort_by(|a, b| {
             let comparison = a.size.cmp(&b.size);
-            if ascending { comparison } else { comparison.reverse() }
+            if ascending {
+                comparison
+            } else {
+                comparison.reverse()
+            }
         });
-        
+
         for child in &mut self.children {
             child.sort_by_size(ascending);
         }
@@ -84,9 +89,13 @@ impl DirectoryNode {
     pub fn sort_by_name(&mut self, ascending: bool) {
         self.children.sort_by(|a, b| {
             let comparison = a.name.to_lowercase().cmp(&b.name.to_lowercase());
-            if ascending { comparison } else { comparison.reverse() }
+            if ascending {
+                comparison
+            } else {
+                comparison.reverse()
+            }
         });
-        
+
         for child in &mut self.children {
             child.sort_by_name(ascending);
         }
@@ -157,25 +166,25 @@ impl Default for ScanProgress {
 pub enum ScanError {
     #[error("Permission denied: {path}")]
     PermissionDenied { path: PathBuf },
-    
+
     #[error("Path not found: {path}")]
     PathNotFound { path: PathBuf },
-    
+
     #[error("Path too long: {path}")]
     PathTooLong { path: PathBuf },
-    
+
     #[error("Invalid path: {path}")]
     InvalidPath { path: PathBuf },
-    
+
     #[error("I/O error at {path}: {message}")]
     IoError { path: PathBuf, message: String },
-    
+
     #[error("File system error: {message}")]
     FileSystemError { message: String },
-    
+
     #[error("Scan cancelled")]
     Cancelled,
-    
+
     #[error("Other error: {message}")]
     Other { message: String },
 }
@@ -187,14 +196,19 @@ impl ScanError {
         match error.kind() {
             std::io::ErrorKind::PermissionDenied => ScanError::PermissionDenied { path },
             std::io::ErrorKind::NotFound => ScanError::PathNotFound { path },
-            _ => ScanError::IoError { path, message: error.to_string() },
+            _ => ScanError::IoError {
+                path,
+                message: error.to_string(),
+            },
         }
     }
 }
 
 impl From<std::io::Error> for ScanError {
     fn from(error: std::io::Error) -> Self {
-        ScanError::Other { message: error.to_string() }
+        ScanError::Other {
+            message: error.to_string(),
+        }
     }
 }
 
@@ -213,5 +227,3 @@ pub enum SortOrder {
     #[default]
     Descending,
 }
-
-

@@ -3,7 +3,7 @@ use eframe::egui::{Color32, Rect};
 pub fn calculate_aspect_ratio(rect: Rect) -> f32 {
     let width = rect.width();
     let height = rect.height();
-    
+
     if height == 0.0 {
         f32::INFINITY
     } else {
@@ -13,7 +13,7 @@ pub fn calculate_aspect_ratio(rect: Rect) -> f32 {
 
 pub fn normalize_values(values: &[f64]) -> Vec<f64> {
     let sum: f64 = values.iter().sum();
-    
+
     if sum == 0.0 {
         values.to_vec()
     } else {
@@ -24,7 +24,7 @@ pub fn normalize_values(values: &[f64]) -> Vec<f64> {
 pub fn color_interpolate(start: Color32, end: Color32, t: f32) -> Color32 {
     let t = t.clamp(0.0, 1.0);
     let inv_t = 1.0 - t;
-    
+
     Color32::from_rgba_unmultiplied(
         (start.r() as f32 * inv_t + end.r() as f32 * t) as u8,
         (start.g() as f32 * inv_t + end.g() as f32 * t) as u8,
@@ -37,11 +37,11 @@ pub fn hsv_to_rgb(hue: f32, saturation: f32, value: f32) -> Color32 {
     let h = hue.rem_euclid(360.0);
     let s = saturation.clamp(0.0, 1.0);
     let v = value.clamp(0.0, 1.0);
-    
+
     let c = v * s;
     let x = c * (1.0 - ((h / 60.0) % 2.0 - 1.0).abs());
     let m = v - c;
-    
+
     let (r, g, b) = if h < 60.0 {
         (c, x, 0.0)
     } else if h < 120.0 {
@@ -55,7 +55,7 @@ pub fn hsv_to_rgb(hue: f32, saturation: f32, value: f32) -> Color32 {
     } else {
         (c, 0.0, x)
     };
-    
+
     Color32::from_rgb(
         ((r + m) * 255.0) as u8,
         ((g + m) * 255.0) as u8,
