@@ -71,18 +71,18 @@ impl TreeViewRenderer {
 
         ui.separator();
 
-        // Tree content in scroll area
-        let root_node = data.scan_result.root.clone();
-        let total_size = data.scan_result.total_size;
-        
+        // Hold our own handle to the result so the tree can be borrowed
+        // while `data` is mutated, without copying the tree every frame.
+        let scan_result = Arc::clone(&data.scan_result);
+
         egui::ScrollArea::both()
             .auto_shrink([false; 2])
             .show(ui, |ui| {
                 self.render_node(
                     ui,
-                    &root_node,
+                    &scan_result.root,
                     0,
-                    total_size,
+                    scan_result.total_size,
                     data,
                     &mut response,
                 );
@@ -247,16 +247,16 @@ impl TreeViewRenderer {
         // Show children if expanded
         if is_expanded && !node.children.is_empty() {
             // Sort children based on current sort criteria
-            let mut sorted_children = node.children.clone();
+            let mut sorted_children: Vec<&DirectoryNode> = node.children.iter().collect();
             self.sort_children(&mut sorted_children, data.sort_by, data.sort_order);
 
-            for child in &sorted_children {
+            for child in sorted_children {
                 self.render_node(ui, child, depth + 1, total_size, data, response);
             }
         }
     }
 
-    fn sort_children(&self, children: &mut [DirectoryNode], sort_by: SortBy, sort_order: SortOrder) {
+    fn sort_children(&self, children: &mut [&DirectoryNode], sort_by: SortBy, sort_order: SortOrder) {
         children.sort_by(|a, b| {
             let comparison = match sort_by {
                 SortBy::Name => a.name.to_lowercase().cmp(&b.name.to_lowercase()),
