@@ -1,16 +1,12 @@
 // Placeholder for color management
 use eframe::egui::Color32;
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Default)]
 pub enum ColorScheme {
+    #[default]
     DepthBased,
     SizeBased,
     TypeBased,
     Custom(Vec<Color32>),
 }
 
-impl Default for ColorScheme {
-    fn default() -> Self {
-        ColorScheme::DepthBased
-    }
-}

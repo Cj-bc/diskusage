@@ -89,7 +89,7 @@ impl DirectoryBrowser {
                         .filter(|entry| entry.file_type().map(|ft| ft.is_dir()).unwrap_or(false))
                         .collect();
                     
-                    dirs.sort_by(|a, b| a.file_name().cmp(&b.file_name()));
+                    dirs.sort_by_key(|a| a.file_name());
                     
                     for entry in dirs {
                         let name = entry.file_name().to_string_lossy().to_string();
@@ -164,12 +164,11 @@ impl DirectoryBrowser {
                 for drive in 'A'..='Z' {
                     let drive_path = format!("{}:\\", drive);
                     let path = PathBuf::from(&drive_path);
-                    if path.exists() {
-                        if ui.button(&drive_path).clicked() {
+                    if path.exists()
+                        && ui.button(&drive_path).clicked() {
                             // TODO: Navigate to drive
                             ui.close_menu();
                         }
-                    }
                 }
             }
             

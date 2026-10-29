@@ -1,18 +1,6 @@
 use eframe::egui;
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum SizeFormat {
-    Bytes,
-    Binary,
-    Decimal,
-    Auto,
-}
-
-impl Default for SizeFormat {
-    fn default() -> Self {
-        SizeFormat::Auto
-    }
-}
+pub use crate::utils::SizeFormat;
 
 pub struct SizeDisplay;
 

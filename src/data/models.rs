@@ -198,28 +198,20 @@ impl From<std::io::Error> for ScanError {
     }
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, Default)]
 pub enum SortBy {
     Name,
+    #[default]
     Size,
     Modified,
     Type,
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, Default)]
 pub enum SortOrder {
     Ascending,
+    #[default]
     Descending,
 }
 
-impl Default for SortBy {
-    fn default() -> Self {
-        SortBy::Size
-    }
-}
 
-impl Default for SortOrder {
-    fn default() -> Self {
-        SortOrder::Descending
-    }
-}

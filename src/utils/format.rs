@@ -1,6 +1,18 @@
 use std::time::Duration;
 
-use crate::gui::components::SizeFormat;
+/// How byte counts are rendered as text.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
+pub enum SizeFormat {
+    /// Exact byte count, e.g. "1536 bytes".
+    Bytes,
+    /// Powers of 1024, e.g. "1.50 KiB".
+    Binary,
+    /// Powers of 1000, e.g. "1.54 KB".
+    Decimal,
+    /// Binary units, but plain bytes below 1 KiB.
+    #[default]
+    Auto,
+}
 
 const BINARY_UNITS: &[&str] = &["B", "KiB", "MiB", "GiB", "TiB", "PiB"];
 const DECIMAL_UNITS: &[&str] = &["B", "KB", "MB", "GB", "TB", "PB"];

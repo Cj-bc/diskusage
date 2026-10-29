@@ -1,11 +1,10 @@
 use eframe::egui;
 use std::collections::HashSet;
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 use std::sync::Arc;
 
 use crate::data::{DirectoryNode, ScanResult, SortBy, SortOrder};
-use crate::gui::components::SizeFormat;
-use crate::utils::format_size_with_format;
+use crate::utils::{format_size_with_format, SizeFormat};
 
 pub struct TreeViewData {
     pub scan_result: Arc<ScanResult>,
@@ -16,6 +15,7 @@ pub struct TreeViewData {
     pub size_format: SizeFormat,
 }
 
+#[derive(Default)]
 pub struct TreeViewResponse {
     pub clicked: Option<PathBuf>,
     pub double_clicked: Option<PathBuf>,
@@ -24,17 +24,6 @@ pub struct TreeViewResponse {
     pub collapsed: Vec<PathBuf>,
 }
 
-impl Default for TreeViewResponse {
-    fn default() -> Self {
-        Self {
-            clicked: None,
-            double_clicked: None,
-            right_clicked: None,
-            expanded: Vec::new(),
-            collapsed: Vec::new(),
-        }
-    }
-}
 
 pub struct TreeViewRenderer {
     pub indent_size: f32,
@@ -302,11 +291,11 @@ impl TreeViewData {
         self.expanded_paths.insert(path);
     }
 
-    pub fn collapse_path(&mut self, path: &PathBuf) {
+    pub fn collapse_path(&mut self, path: &Path) {
         self.expanded_paths.remove(path);
     }
 
-    pub fn is_expanded(&self, path: &PathBuf) -> bool {
+    pub fn is_expanded(&self, path: &Path) -> bool {
         self.expanded_paths.contains(path)
     }
 

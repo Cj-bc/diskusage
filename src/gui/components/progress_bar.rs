@@ -89,7 +89,7 @@ impl ProgressBar {
         ui.painter().rect_stroke(
             rect,
             egui::Rounding::same(4.0),
-            egui::Stroke::new(1.0, ui.style().visuals.widgets.inactive.fg_stroke.color),
+            egui::Stroke::new(1.0_f32, ui.style().visuals.widgets.inactive.fg_stroke.color),
         );
 
         // Draw text

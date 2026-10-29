@@ -1,5 +1,5 @@
 // Placeholder for filter implementation
-use std::path::PathBuf;
+use std::path::Path;
 
 #[derive(Debug, Clone)]
 pub enum PathFilter {
@@ -9,7 +9,7 @@ pub enum PathFilter {
 }
 
 impl PathFilter {
-    pub fn matches(&self, _path: &PathBuf) -> bool {
+    pub fn matches(&self, _path: &Path) -> bool {
         // TODO: Implement filter logic
         true
     }

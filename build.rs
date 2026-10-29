@@ -134,11 +134,8 @@ fn set_optimization_flags(target_os: &str, target_arch: &str) {
         println!("cargo:rustc-cfg=release_build");
         
         // Release-specific optimizations
-        match target_os {
-            "windows" => {
-                println!("cargo:rustc-link-arg=/LTCG");
-            }
-            _ => {}
+        if target_os == "windows" {
+            println!("cargo:rustc-link-arg=/LTCG");
         }
     } else {
         println!("cargo:rustc-cfg=debug_build");

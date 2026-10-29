@@ -26,6 +26,7 @@ pub struct TreeMapData {
     pub hovered_path: Option<PathBuf>,
 }
 
+#[derive(Default)]
 pub struct TreeMapResponse {
     pub clicked: Option<PathBuf>,
     pub double_clicked: Option<PathBuf>,
@@ -35,18 +36,6 @@ pub struct TreeMapResponse {
     pub pan_changed: bool,
 }
 
-impl Default for TreeMapResponse {
-    fn default() -> Self {
-        Self {
-            clicked: None,
-            double_clicked: None,
-            right_clicked: None,
-            hovered: None,
-            zoom_changed: false,
-            pan_changed: false,
-        }
-    }
-}
 
 pub struct TreeMapRenderer {
     pub min_rect_size: f32,
@@ -224,7 +213,7 @@ impl TreeMapRenderer {
             .filter(|child| child.size > 0)
             .collect();
         
-        visible_children.sort_by(|a, b| b.size.cmp(&a.size));
+        visible_children.sort_by_key(|child| std::cmp::Reverse(child.size));
 
         if visible_children.is_empty() {
             return;
