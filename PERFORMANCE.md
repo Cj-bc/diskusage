@@ -1,5 +1,10 @@
 # Performance and Memory Usage Specifications
 
+> **Status: design specification.** These are targets set before the implementation; none of them has been measured, and there is no performance test suite.
+>
+> - **In place:** scanning runs on a background thread with throttled progress messages; the three views share one `Arc<ScanResult>` and the tree view no longer copies the tree each frame.
+> - **Not implemented:** parallel scanning, object pooling and compact node layouts, viewport culling and level of detail, caching, metrics collection, and the benchmark/load-test suites.
+
 ## Overview
 
 This document defines the performance targets, memory usage requirements, and optimization strategies for the DiskUsage application to ensure responsive operation across various system configurations.

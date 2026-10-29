@@ -1,5 +1,9 @@
 # Visualization Component Specifications
 
+> **Status: design specification.** Written before the implementation and kept as a design reference. The three views exist and behave as described in [USER_GUIDE.md](USER_GUIDE.md), but their types differ from the ones sketched here; see [API.md](API.md#guiviews) for the real ones.
+>
+> - **Not implemented:** the common `Visualization` trait, selectable color schemes (the TreeMap colors by depth, the Pie Chart by index), animations, and tree view virtualization. Right-click events are reported but there are no context menus.
+
 ## Overview
 
 This document specifies the requirements and design for the three main visualization components: TreeMap, TreeView, and PieChart. Each component provides a unique perspective on directory space usage data.

@@ -1,5 +1,10 @@
 # Cross-Platform Compatibility Requirements
 
+> **Status: design specification.** Written before the implementation and kept as a design reference. Currently the application is tested on Windows; Linux is expected to work; macOS is untested.
+>
+> - **As implemented:** paths go through `std::path` with no platform-specific handling; symlinks and Windows junctions are not followed; settings are stored by eframe in the platform's application data directory (`%APPDATA%\DiskUsage\data\app.ron` on Windows), not in the registry or a config file of our own.
+> - **Not implemented:** registry and configuration-file integration, special handling of long Windows paths, platform-specific error types, and the platform test suites sketched below.
+
 ## Overview
 
 This document outlines the cross-platform compatibility requirements for the DiskUsage application, ensuring consistent behavior across Windows and Linux operating systems.

@@ -1,5 +1,10 @@
 # Data Structures and Algorithms
 
+> **Status: design specification.** This document was written before the implementation and is kept as a design reference; its code samples are sketches, not the actual code. For what exists, see [ARCHITECTURE.md](ARCHITECTURE.md) and [API.md](API.md).
+>
+> - **Implemented:** squarified treemap layout (`src/gui/views/treemap.rs`; unlike the sketch below, each row is measured against the size that *remains*, and the total may include files directly in the directory), single-key tree view sorting, pie slices (largest subdirectories clockwise from the top plus one "Other" slice), and a recursive depth-first scan on one background thread.
+> - **Not implemented:** breadth-first traversal, multi-level sorting, async (Tokio) scanning, the LRU cache and its invalidation, search and filtering, the node memory pool, and batch processing.
+
 ## Core Data Structures
 
 ### DirectoryNode Structure
