@@ -187,11 +187,8 @@ impl TreeViewRenderer {
 
                 // Icon
                 if self.show_icons {
-                    let icon = if node.children.is_empty() {
-                        "📄"
-                    } else {
-                        if is_expanded { "📂" } else { "📁" }
-                    };
+                    // Every node is a directory; files are only counted, not listed
+                    let icon = if is_expanded { "📂" } else { "📁" };
                     ui.label(icon);
                 }
 

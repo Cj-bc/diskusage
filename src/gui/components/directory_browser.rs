@@ -146,7 +146,7 @@ impl DirectoryBrowser {
     }
 
     pub fn can_go_forward(&self) -> bool {
-        self.history_index < self.history.len() - 1
+        self.history_index + 1 < self.history.len()
     }
 
     pub fn add_favorite(&mut self, path: PathBuf) {

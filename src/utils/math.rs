@@ -34,7 +34,7 @@ pub fn color_interpolate(start: Color32, end: Color32, t: f32) -> Color32 {
 }
 
 pub fn hsv_to_rgb(hue: f32, saturation: f32, value: f32) -> Color32 {
-    let h = hue % 360.0;
+    let h = hue.rem_euclid(360.0);
     let s = saturation.clamp(0.0, 1.0);
     let v = value.clamp(0.0, 1.0);
     
@@ -61,4 +61,16 @@ pub fn hsv_to_rgb(hue: f32, saturation: f32, value: f32) -> Color32 {
         ((g + m) * 255.0) as u8,
         ((b + m) * 255.0) as u8,
     )
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn hsv_to_rgb_wraps_hue() {
+        assert_eq!(hsv_to_rgb(0.0, 1.0, 1.0), Color32::from_rgb(255, 0, 0));
+        assert_eq!(hsv_to_rgb(-120.0, 1.0, 1.0), hsv_to_rgb(240.0, 1.0, 1.0));
+        assert_eq!(hsv_to_rgb(480.0, 1.0, 1.0), hsv_to_rgb(120.0, 1.0, 1.0));
+    }
 }
