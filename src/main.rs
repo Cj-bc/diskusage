@@ -1,13 +1,5 @@
+use diskusage::DiskUsageApp;
 use eframe::egui;
-
-mod app;
-mod data;
-mod fs;
-mod gui;
-mod utils;
-mod visualization;
-
-use app::DiskUsageApp;
 
 fn main() -> Result<(), eframe::Error> {
     env_logger::init();
