@@ -2,371 +2,145 @@
 
 ## Getting Started
 
-### Installation
+Build and run the application as described in the [README](README.md#quick-start):
 
-#### Prerequisites
-- **Rust Toolchain**: Install from [rustup.rs](https://rustup.rs/)
-- **Git**: For cloning the repository
-
-#### Building from Source
 ```bash
-# Clone the repository
-git clone https://github.com/Cj-bc/diskusage.git
-cd diskusage
-
-# Build the application
-cargo build --release
-
-# Run the application
-./target/release/diskusage
+cargo run --release
 ```
-
-#### Windows-specific Notes
-- Run from Command Prompt or PowerShell
-- The executable will be located at `target\release\diskusage.exe`
-
-#### Linux-specific Notes
-- Ensure you have development tools installed
-- May require `build-essential` or equivalent package
 
 ## Interface Overview
 
-### Main Window Layout
 ```
-┌─────────────────────────────────────────────────────────────┐
-│ File  View  Tools  Help                           [ ][-][×] │
-├─────────────────────────────────────────────────────────────┤
-│ [📁] /home/user/documents     [🔍] Search    [⚙️] Settings │
-├─────────────────────────────────────────────────────────────┤
-│ Path: /home/user/documents    Size: 2.5 GB   Files: 1,240  │
-├─────────────────────────────────────────────────────────────┤
-│                                                             │
-│              Visualization Area                             │
-│                                                             │
-├─────────────────────────────────────────────────────────────┤
-│ [TreeMap] [TreeView] [PieChart]           Status: Ready    │
-└─────────────────────────────────────────────────────────────┘
+┌─────────────────────────────────────────────────────────────────────┐
+│ File  View  Tools  Help                                             │  menu bar
+├─────────────────────────────────────────────────────────────────────┤
+│ [📁 Open Directory] │ Path: C:\Users\me\Documents                    │  toolbar
+│                                  [TreeMap] [Tree View] [Pie Chart]  │
+├─────────────────────────────────────────────────────────────────────┤
+│                                                                     │
+│                         visualization area                          │
+│                                                                     │
+├─────────────────────────────────────────────────────────────────────┤
+│ Total: 1520 | Files: 1240 | Dirs: 280 | Size: 2.50 GiB | Took: 1.20s│  status bar
+└─────────────────────────────────────────────────────────────────────┘
 ```
 
-### Navigation Bar
-- **Folder Button**: Opens directory browser
-- **Path Display**: Shows current directory path
-- **Search Box**: Filter directories and files
-- **Settings Button**: Access application preferences
+### Menu bar
+| Menu | Item | What it does |
+|---|---|---|
+| File | Open Directory... | Pick a folder and scan it |
+| File | Recent | Rescan one of the last 10 folders (disabled until you have scanned one) |
+| File | Exit | Close the application |
+| View | TreeMap / Tree View / Pie Chart | Switch the visualization |
+| Tools | Refresh | Rescan the current folder |
+| Tools | Export..., Settings | Not implemented yet (disabled) |
+| Help | About | Version and project link |
 
-### Status Bar
-- **View Mode Tabs**: Switch between visualization modes
-- **Status Display**: Shows current operation status
-- **Progress Bar**: Appears during directory scans
+### Toolbar
+- **📁 Open Directory** opens the folder picker
+- **Path** shows the folder that was scanned
+- The buttons on the right switch between the three views
 
-## Core Features
+### Status bar
+- **While scanning**: a spinner, the number of files and directories scanned so far, the bytes counted, and a **Cancel** button
+- **After a scan**: totals for the whole scan and how long it took. If some entries could not be read, a **⚠ N skipped** marker appears; hover over it to see which (up to 10)
+- **Errors**, such as a folder that could not be opened at all, are shown in red on the right
 
-### 1. Directory Selection
+## Scanning
 
-#### Browse for Directory
-1. Click the folder button (📁) in the navigation bar
-2. Navigate to desired directory using the file browser
-3. Click "Select" to analyze the chosen directory
+1. Choose a folder with **📁 Open Directory**, File → Open Directory..., or File → Recent
+2. The scan starts immediately and runs in the background
+3. Click **Cancel** in the status bar to stop it. Nothing from a cancelled scan is kept
 
-#### Recent Directories
-- Access recently analyzed directories from the File menu
-- Use **Ctrl+R** to quickly reopen recent locations
+Starting a new scan while one is running cancels the running one.
 
-#### Favorites
-- Add frequently used directories to favorites
-- Access via File → Favorites or **Ctrl+F**
+### What is measured
+- **Sizes are file lengths** as reported by the file system, not the space allocated on disk. Compressed or sparse files may take less space than shown, and files with several hard links are counted once per link
+- **Directories only** appear as items in the views. Files are counted and their sizes added to their directory, but they are not listed individually
+- **Symbolic links and Windows junctions are not followed.** A link is counted as a small file, so the same data is never counted twice and link cycles can't trap the scan
+- **Unreadable entries are skipped.** A folder you are not allowed to read is left out (and listed under ⚠ skipped); the rest of the scan continues. Only failing to read the folder you picked stops the scan
 
-### 2. Directory Analysis
+## Views
 
-#### Starting a Scan
-1. Select a directory using the folder button
-2. The scan will start automatically
-3. Progress is shown in the status bar
+### Tree View
+A hierarchical list of directories, starting with the scanned folder expanded.
 
-#### Scan Options
-- **Follow Symlinks**: Include symbolic links in analysis
-- **Max Depth**: Limit recursion depth for large directories
-- **File Filters**: Include/exclude specific file types
+Each row shows, from left to right:
+- **▶ / ▼** to expand or collapse (only on directories that contain subdirectories)
+- The directory name
+- On the right: its size, its share of the whole scan (when 0.1% or more), and `(N items)`, the number of subdirectories it directly contains
 
-#### Canceling a Scan
-- Press **Escape** or click the "Cancel" button
-- Partial results will be displayed if available
+**Header controls**
+- **Sort by**: Name, Size, Modified, or Type
+- **↑ Asc / ↓ Desc**: toggle the sort order
+- **Size format**: Auto, Bytes, Binary (KiB, MiB…), or Decimal (KB, MB…)
 
-### 3. Visualization Modes
+**Interactions**
+- **Click a name**: select it
+- **Double-click a name**: select it and expand it
 
-#### TreeMap View
-The TreeMap displays directories as rectangles, where:
-- **Size**: Rectangle area proportional to directory size
-- **Color**: Indicates directory depth or file type
-- **Labels**: Directory names shown when space permits
+### TreeMap
+Each directory is a rectangle whose area is proportional to its size, so big directories are easy to spot. Subdirectories are drawn inside their parent once the parent is large enough. Colors indicate nesting depth. Empty space inside a rectangle is taken up by files sitting directly in that directory.
 
-**Interactions:**
-- **Click**: Navigate into subdirectory
-- **Right-click**: Context menu with options
-- **Mouse wheel**: Zoom in/out
-- **Drag**: Pan when zoomed
+**Header controls**
+- **⬆ Up**: go back to the parent directory (disabled at the scanned folder)
+- **Reset View**: undo zoom and pan
+- **Zoom**: the current zoom factor
 
-#### TreeView Mode
-A hierarchical list showing:
-- **Tree Structure**: Expandable directory hierarchy
-- **Size Information**: File sizes and percentages
-- **File Counts**: Number of files and subdirectories
+**Interactions**
+- **Hover**: tooltip with the path, size, and share of the scan
+- **Click**: select (highlighted)
+- **Double-click**: show that directory's contents (only for directories that have subdirectories)
+- **Mouse wheel** over the map: zoom between 0.1× and 10×
+- **Drag**: pan
 
-**Interactions:**
-- **Click arrow**: Expand/collapse directories
-- **Click name**: Select directory
-- **Double-click**: Navigate to directory
-- **Right-click**: Context menu
+### Pie Chart
+The directory's largest subdirectories as slices of a ring, starting at the top and running clockwise. Everything that does not get its own slice is grouped into a grey **Other** slice: subdirectories beyond the slice limit, slices smaller than about 3°, and files directly in the directory. The center shows the current directory's name and size.
 
-#### PieChart View
-Shows immediate subdirectories as pie slices:
-- **Slice Size**: Proportional to directory size
-- **Colors**: Different colors for each directory
-- **Labels**: Directory names and sizes
+**Header controls**
+- **⬆ Up**: go back to the parent directory
+- **Show Labels** / **Show Percentages**: label slices that are wide enough (20° or more)
+- **Max slices**: 5–20 (default 12). When there are more subdirectories than this, one of the slots goes to Other
 
-**Interactions:**
-- **Click slice**: Navigate to subdirectory
-- **Hover**: Show detailed information
-- **Right-click**: Context menu
+**Interactions**
+- **Hover**: the slice pops out and a tooltip shows its name, path, size and percentage
+- **Click**: select (the slice stays popped out)
+- **Double-click**: show that directory's contents (not available on the Other slice)
 
-### 4. Navigation
+## Saved state
 
-#### Drilling Down
-- **TreeMap**: Click on any rectangle to zoom into that directory
-- **TreeView**: Double-click on directory name or expand arrow
-- **PieChart**: Click on pie slice to navigate
+When you close the application it remembers:
+- the selected view
+- the last scanned folder
+- the recent folders list
 
-#### Going Back
-- Use the back button (◀) in the navigation bar
-- Press **Alt+Left** keyboard shortcut
-- Use breadcrumb navigation in the path bar
+Scan results are **not** saved, because they can be large and would be out of date by the next launch. After restarting, use File → Recent or Tools → Refresh to scan again.
 
-#### Breadcrumb Navigation
-Click any part of the path to navigate to that level:
-```
-/home/user/documents/projects/myproject
-  ↑     ↑        ↑         ↑
-  └─────┼────────┼─────────┼───── Click any part to navigate
-```
-
-### 5. Search and Filtering
-
-#### Search Box
-- Type to filter visible directories and files
-- Use wildcards: `*.txt`, `photo*`, `*2023*`
-- Case-insensitive by default
-
-#### Filter Options
-Access advanced filtering through Tools → Filters:
-- **File Size**: Filter by minimum/maximum size
-- **Date Modified**: Filter by date range
-- **File Type**: Show only specific file extensions
-- **Hidden Files**: Show/hide hidden files and directories
-
-#### Quick Filters
-- **Large Files**: Show files larger than 100MB
-- **Recent**: Show files modified in last 7 days
-- **Empty Directories**: Show directories with no files
-
-### 6. Information Display
-
-#### Size Formatting
-Choose how sizes are displayed:
-- **Bytes**: 1,024 bytes
-- **Binary**: 1 KiB, 1 MiB, 1 GiB
-- **Decimal**: 1 KB, 1 MB, 1 GB
-- **Auto**: Automatically choose appropriate unit
-
-#### Detailed Information
-Hover over items to see:
-- Full path
-- Exact size in bytes
-- File count
-- Last modified date
-- Permissions (on supported systems)
-
-### 7. Context Menus
-
-Right-click on any directory to access:
-- **Open in File Manager**: Open system file manager
-- **Open Terminal**: Open command prompt/terminal
-- **Copy Path**: Copy full path to clipboard
-- **Properties**: Show detailed information
-- **Export**: Export directory information
-
-## Advanced Features
-
-### 8. Export Functionality
-
-#### Export Formats
-- **JSON**: Machine-readable format with full structure
-- **CSV**: Spreadsheet-compatible format
-- **Text**: Human-readable tree structure
-
-#### Export Options
-1. Right-click on directory and select "Export"
-2. Choose export format
-3. Select output location
-4. Configure export options:
-   - Include subdirectories
-   - Size thresholds
-   - File count limits
-
-### 9. Settings and Preferences
-
-#### Appearance
-- **Theme**: Light, Dark, or System default
-- **Font Size**: Adjust text size
-- **Color Scheme**: Choose visualization colors
-- **Animation**: Enable/disable transitions
-
-#### Performance
-- **Cache Size**: Number of directories to cache
-- **Cache Duration**: How long to keep cached data
-- **Scan Threads**: Number of concurrent scan operations
-- **Memory Limit**: Maximum memory usage
-
-#### Behavior
-- **Auto-refresh**: Automatically update on file changes
-- **Confirmation Dialogs**: Show confirmations for actions
-- **Default View**: Choose default visualization mode
-- **Startup Directory**: Directory to show on startup
-
-### 10. Keyboard Shortcuts
-
-#### Navigation
-- **Ctrl+O**: Open directory browser
-- **Ctrl+R**: Recent directories
-- **Ctrl+F**: Favorites
-- **Alt+Left**: Go back
-- **Alt+Right**: Go forward
-- **Ctrl+Home**: Go to root directory
-
-#### View Controls
-- **1**: TreeMap view
-- **2**: TreeView view
-- **3**: PieChart view
-- **Ctrl+Plus**: Zoom in
-- **Ctrl+Minus**: Zoom out
-- **Ctrl+0**: Reset zoom
-
-#### General
-- **Ctrl+Q**: Quit application
-- **F5**: Refresh current directory
-- **Escape**: Cancel current operation
-- **F11**: Toggle fullscreen
+On Windows this is stored in `%APPDATA%\DiskUsage\data\app.ron`; on other platforms, in the platform's application data directory. Deleting that file resets everything to the defaults.
 
 ## Troubleshooting
 
-### Common Issues
+### Many entries are skipped
+Folders that need administrator rights (for example, other users' profiles or system folders) can't be read and are skipped. Run the application with elevated rights if you need them included.
 
-#### "Permission Denied" Errors
-- Some directories require administrator privileges
-- Use "Run as Administrator" on Windows
-- Use `sudo` on Linux if necessary
-- Check file permissions
+### The scan is slow
+Network drives and folders with very many small files take a while; antivirus software can also slow down file system access. You can cancel at any time.
 
-#### Slow Performance
-- **Large Directories**: Use depth limiting
-- **Network Drives**: May be slower than local drives
-- **Antivirus**: May slow down file system access
-- **Memory**: Close other applications if low on RAM
+### The folder picker does not open (Linux)
+The picker uses GTK 3. Install your distribution's GTK 3 runtime (and, to build, its development package such as `libgtk-3-dev`).
 
-#### Application Won't Start
-- **Rust Installation**: Ensure Rust is properly installed
-- **Dependencies**: Check for missing system libraries
-- **Permissions**: Ensure executable permissions on Linux
-- **Compatibility**: Check OS version compatibility
+### Seeing what the application is doing
+Run it with logging enabled to see scans, skipped entries and clicks:
 
-### Error Messages
-
-#### "Path Not Found"
-- Verify the directory path exists
-- Check for typos in manual path entry
-- Ensure drive is connected (removable media)
-
-#### "Scan Cancelled"
-- User cancelled the operation
-- Click "Retry" to start scan again
-- Check available disk space
-
-#### "Export Failed"
-- Insufficient disk space for export file
-- Check write permissions for output directory
-- Verify export path is valid
-
-### Performance Tips
-
-#### For Large Directories
-- Use depth limiting to avoid deep recursion
-- Enable caching for frequently accessed directories
-- Close unnecessary applications to free memory
-- Use filtering to focus on specific areas
-
-#### For Network Drives
-- Copy directory to local drive first
-- Use wired connection instead of wireless
-- Increase timeout settings
-- Consider using alternative tools for very large network shares
-
-## Tips and Best Practices
-
-### Efficient Workflow
-1. **Start with Overview**: Use TreeMap to identify large directories
-2. **Drill Down**: Navigate to suspicious areas
-3. **Use Filters**: Focus on specific file types or sizes
-4. **Export Results**: Save findings for future reference
-
-### Maintenance Tasks
-- **Regular Scans**: Check disk usage weekly
-- **Cache Cleanup**: Clear cache periodically
-- **Update Application**: Keep application updated
-- **Backup Settings**: Export preferences before major changes
-
-### Privacy and Security
-- **Sensitive Data**: Be cautious when sharing exported data
-- **Network Drives**: Be aware of network visibility
-- **Temporary Files**: Application doesn't create persistent logs
-- **File Access**: Application only reads file metadata
-
-## Getting Help
-
-### Built-in Help
-- **F1**: Context-sensitive help
-- **Help Menu**: Access user guide and documentation
-- **Tool Tips**: Hover over buttons for quick help
-
-### Online Resources
-- **Documentation**: Latest guides and tutorials
-- **Issue Tracker**: Report bugs and request features
-- **Community**: User forums and discussions
-
-### Reporting Issues
-When reporting problems, include:
-- Operating system and version
-- Application version
-- Steps to reproduce the issue
-- Error messages (if any)
-- Directory size and structure (if relevant)
-
-## Appendices
-
-### Supported File Systems
-- **Windows**: NTFS, FAT32, exFAT
-- **Linux**: ext4, ext3, xfs, btrfs
-- **Network**: SMB/CIFS, NFS (with limitations)
-
-### File Size Limits
-- **Maximum File Size**: Limited by file system
-- **Maximum Directory Depth**: 1000 levels (configurable)
-- **Maximum Files**: Limited by available memory
-
-### Keyboard Reference Card
-Print this reference for quick access to shortcuts:
+```bash
+RUST_LOG=info cargo run --release            # Linux/macOS
+$env:RUST_LOG="info"; cargo run --release    # Windows PowerShell
 ```
-Navigation          View Controls       General
-Ctrl+O - Open       1 - TreeMap        Ctrl+Q - Quit
-Ctrl+R - Recent     2 - TreeView       F5 - Refresh
-Alt+← - Back        3 - PieChart       Esc - Cancel
-Alt+→ - Forward     Ctrl+0 - Reset     F11 - Fullscreen
-```
+
+## Reporting Issues
+
+Please open an issue at <https://github.com/Cj-bc/diskusage/issues> and include:
+- your operating system and version
+- the application version (Help → About)
+- steps to reproduce
+- any error messages, and the `RUST_LOG=info` output if you can
