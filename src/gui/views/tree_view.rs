@@ -1,13 +1,14 @@
 use eframe::egui;
 use std::collections::HashSet;
 use std::path::PathBuf;
+use std::sync::Arc;
 
 use crate::data::{DirectoryNode, ScanResult, SortBy, SortOrder};
 use crate::gui::components::SizeFormat;
 use crate::utils::format_size_with_format;
 
 pub struct TreeViewData {
-    pub scan_result: ScanResult,
+    pub scan_result: Arc<ScanResult>,
     pub expanded_paths: HashSet<PathBuf>,
     pub selected_path: Option<PathBuf>,
     pub sort_by: SortBy,
@@ -282,7 +283,7 @@ impl TreeViewRenderer {
 }
 
 impl TreeViewData {
-    pub fn new(scan_result: ScanResult) -> Self {
+    pub fn new(scan_result: Arc<ScanResult>) -> Self {
         let mut expanded_paths = HashSet::new();
         // Auto-expand the root
         expanded_paths.insert(scan_result.root.path.clone());

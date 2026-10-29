@@ -1,6 +1,7 @@
 use eframe::egui::{self, Color32, Pos2, Rect, Sense};
 use std::f32::consts::PI;
 use std::path::PathBuf;
+use std::sync::Arc;
 
 use crate::data::{DirectoryNode, ScanResult};
 use crate::utils::{format_size, hsv_to_rgb};
@@ -18,7 +19,7 @@ pub struct PieSlice {
 }
 
 pub struct PieChartData {
-    pub scan_result: ScanResult,
+    pub scan_result: Arc<ScanResult>,
     pub current_path: PathBuf,
     pub selected_path: Option<PathBuf>,
     pub hovered_path: Option<PathBuf>,
@@ -397,7 +398,7 @@ impl PieChartRenderer {
 }
 
 impl PieChartData {
-    pub fn new(scan_result: ScanResult) -> Self {
+    pub fn new(scan_result: Arc<ScanResult>) -> Self {
         Self {
             current_path: scan_result.root.path.clone(),
             scan_result,

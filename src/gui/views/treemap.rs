@@ -1,5 +1,6 @@
 use eframe::egui::{self, Color32, Pos2, Rect, Sense, Vec2};
 use std::path::PathBuf;
+use std::sync::Arc;
 
 use crate::data::{DirectoryNode, ScanResult};
 use crate::utils::{format_size, hsv_to_rgb};
@@ -17,7 +18,7 @@ pub struct TreeMapRect {
 }
 
 pub struct TreeMapData {
-    pub scan_result: ScanResult,
+    pub scan_result: Arc<ScanResult>,
     pub current_path: PathBuf,
     pub zoom_level: f32,
     pub pan_offset: Vec2,
@@ -487,7 +488,7 @@ impl TreeMapRenderer {
 }
 
 impl TreeMapData {
-    pub fn new(scan_result: ScanResult) -> Self {
+    pub fn new(scan_result: Arc<ScanResult>) -> Self {
         Self {
             current_path: scan_result.root.path.clone(),
             scan_result,
