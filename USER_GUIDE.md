@@ -88,7 +88,7 @@ Each directory is a rectangle whose area is proportional to its size, so big dir
 - **Zoom**: the current zoom factor
 
 **Interactions**
-- **Hover**: tooltip with the path, size, and share of the scan
+- **Hover**: tooltip with the path, size, and share of the directory being shown
 - **Click**: select (highlighted)
 - **Double-click**: show that directory's contents (only for directories that have subdirectories)
 - **Mouse wheel** over the map: zoom between 0.1× and 10×

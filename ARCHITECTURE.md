@@ -2,225 +2,162 @@
 
 ## System Overview
 
-DiskUsage is designed as a modular, cross-platform desktop application with clear separation of concerns between data analysis, visualization, and user interface components.
+DiskUsage is a single-window [eframe](https://github.com/emilk/egui/tree/master/crates/eframe)/egui application. A background thread scans the chosen directory into an in-memory tree; the UI thread polls it each frame and, once the scan completes, renders the tree in one of three views.
 
 ```
-┌─────────────────────────────────────────────────────────────┐
-│                        GUI Layer (egui)                     │
-├─────────────────────────────────────────────────────────────┤
-│  ┌─────────────────┐  ┌─────────────────┐  ┌─────────────────┐ │
-│  │   TreeMap       │  │   TreeView      │  │   PieChart      │ │
-│  │   Component     │  │   Component     │  │   Component     │ │
-│  └─────────────────┘  └─────────────────┘  └─────────────────┘ │
-├─────────────────────────────────────────────────────────────┤
-│                    Application State                        │
-├─────────────────────────────────────────────────────────────┤
-│  ┌─────────────────┐  ┌─────────────────┐  ┌─────────────────┐ │
-│  │   FileSystem    │  │   Cache         │  │   Export        │ │
-│  │   Scanner       │  │   Manager       │  │   Manager       │ │
-│  └─────────────────┘  └─────────────────┘  └─────────────────┘ │
-├─────────────────────────────────────────────────────────────┤
-│                     Core Data Layer                         │
-└─────────────────────────────────────────────────────────────┘
+┌───────────────────────────────────────────────────────────────────┐
+│ UI thread                                                          │
+│                                                                    │
+│  DiskUsageApp (app.rs)                                             │
+│   ├─ AppState            persisted preferences (gui/app_state.rs)  │
+│   ├─ ScanState           Idle | Scanning | Loaded                  │
+│   │    └─ LoadedScan     Arc<ScanResult> + per-view data           │
+│   ├─ TreeMapRenderer ┐                                             │
+│   ├─ TreeViewRenderer├─ display settings only (gui/views/)         │
+│   ├─ PieChartRenderer┘                                             │
+│   └─ Scanner ──────── poll() each frame                            │
+│          ▲                                                         │
+└──────────┼─────────────────────────────────────────────────────────┘
+           │ mpsc channel: Progress(ScanProgress) / Completed(Result)
+┌──────────┴─────────────────────────────────────────────────────────┐
+│ Scan thread (fs/scanner.rs)                                         │
+│   recursive std::fs::read_dir walk → DirectoryNode tree             │
+└─────────────────────────────────────────────────────────────────────┘
 ```
-
-## Core Components
-
-### 1. GUI Layer (`src/gui/`)
-- **Framework**: egui immediate mode GUI
-- **Responsibilities**: User interface rendering, event handling, layout management
-- **Components**:
-  - `app.rs`: Main application state and event loop
-  - `components/`: Reusable UI components
-  - `views/`: Different visualization modes
-
-### 2. Visualization Components (`src/visualization/`)
-- **TreeMap**: Proportional rectangle visualization
-- **TreeView**: Hierarchical list with size information
-- **PieChart**: Circular sector visualization
-- **Interactive**: Click-to-drill-down functionality
-
-### 3. File System Analysis (`src/fs/`)
-- **Scanner**: Directory traversal and size calculation
-- **Cross-platform**: Windows and Linux path handling
-- **Performance**: Async scanning with progress tracking
-- **Error handling**: Graceful handling of permission issues
-
-### 4. Data Management (`src/data/`)
-- **Models**: Core data structures for directories and files
-- **Cache**: Intelligent caching for performance
-- **Export**: JSON and CSV serialization
-- **Filtering**: Search and filter functionality
-
-## Data Flow
-
-```
-User Input → GUI Events → Application State → File System Scanner
-                                            ↓
-Export Manager ← Cache Manager ← Data Models ← Scanner Results
-      ↓
-GUI Components ← Visualization Engine ← Processed Data
-```
-
-## Key Design Principles
-
-### 1. Separation of Concerns
-- **GUI**: Pure presentation logic
-- **Business Logic**: Data processing and analysis
-- **Data Access**: File system operations
-
-### 2. Performance Optimization
-- **Lazy Loading**: Only scan directories when needed
-- **Caching**: Store computed results for fast re-access
-- **Async Operations**: Non-blocking UI during scans
-- **Memory Efficiency**: Stream processing for large directories
-
-### 3. Cross-Platform Compatibility
-- **Path Handling**: Platform-agnostic path operations
-- **File System**: Handle different file system types
-- **UI Consistency**: Consistent look and feel across platforms
 
 ## Module Structure
 
 ```
 src/
-├── main.rs                 # Application entry point
-├── app.rs                  # Main application state
-├── gui/                    # GUI components
-│   ├── mod.rs
-│   ├── app.rs              # Main application window
-│   ├── components/         # Reusable UI components
-│   │   ├── mod.rs
-│   │   ├── directory_browser.rs
-│   │   ├── size_display.rs
-│   │   └── progress_bar.rs
-│   └── views/              # Different visualization views
-│       ├── mod.rs
-│       ├── treemap.rs
-│       ├── tree_view.rs
-│       └── pie_chart.rs
-├── fs/                     # File system operations
-│   ├── mod.rs
-│   ├── scanner.rs          # Directory scanning
-│   ├── path_utils.rs       # Cross-platform path handling
-│   └── permissions.rs      # Permission handling
-├── data/                   # Data models and management
-│   ├── mod.rs
-│   ├── models.rs           # Core data structures
-│   ├── cache.rs            # Caching system
-│   ├── export.rs           # Export functionality
-│   └── filter.rs           # Search and filtering
-├── visualization/          # Visualization algorithms
-│   ├── mod.rs
-│   ├── treemap.rs          # Treemap algorithm
-│   ├── layout.rs           # Layout calculations
-│   └── color.rs            # Color schemes
-└── utils/                  # Utility functions
-    ├── mod.rs
-    ├── format.rs           # Size formatting
-    └── math.rs             # Mathematical utilities
+├── main.rs                 # Binary entry point: window options, runs DiskUsageApp
+├── lib.rs                  # Library crate root; the binary depends on it
+├── app.rs                  # DiskUsageApp: scan lifecycle, menus, toolbar, status bar
+├── data/
+│   ├── models.rs           # DirectoryNode, ScanResult, ScanProgress, ScanError, SortBy/SortOrder
+│   ├── cache.rs            # Placeholder (CacheManager, no behaviour yet)
+│   ├── export.rs           # Placeholder (ExportManager, no behaviour yet)
+│   └── filter.rs           # Placeholder (PathFilter, matches everything)
+├── fs/
+│   ├── scanner.rs          # Scanner, ScanOptions, ScanUpdate; the scan thread
+│   ├── path_utils.rs       # Small path helpers (currently unused)
+│   └── permissions.rs      # can_read / is_hidden helpers (currently unused)
+├── gui/
+│   ├── app_state.rs        # AppState, AppSettings, ViewMode, Theme
+│   ├── components/         # Reusable widgets: SizeDisplay, ProgressBar, DirectoryBrowser (unused)
+│   └── views/
+│       ├── tree_view.rs    # TreeViewData + TreeViewRenderer
+│       ├── treemap.rs      # TreeMapData + TreeMapRenderer + squarified layout
+│       └── pie_chart.rs    # PieChartData + PieChartRenderer + slice calculation
+├── visualization/          # ColorScheme; the other files are empty placeholders
+└── utils/
+    ├── format.rs           # SizeFormat, format_size, format_duration, …
+    └── math.rs             # hsv_to_rgb and other numeric helpers
 ```
 
-## Data Structures
+Dependencies point downwards: `app` → `gui` → `data` / `utils`, and `fs` → `data`. `utils` depends on nothing in the crate.
 
-### DirectoryNode
+## Data Model
+
+The whole scan is one tree of `DirectoryNode`s held in memory.
+
 ```rust
-struct DirectoryNode {
-    name: String,
-    path: PathBuf,
-    size: u64,
-    children: Vec<DirectoryNode>,
-    file_count: usize,
-    dir_count: usize,
-    last_modified: SystemTime,
-    is_expanded: bool,
+pub struct DirectoryNode {
+    pub name: String,
+    pub path: PathBuf,
+    pub size: u64,               // bytes in this directory, recursively
+    pub children: Vec<DirectoryNode>, // subdirectories only
+    pub file_count: usize,       // files, recursively
+    pub dir_count: usize,        // subdirectories, recursively
+    pub last_modified: SystemTime,
+    pub is_expanded: bool,       // unused; the tree view tracks expansion itself
 }
 ```
 
-### ScanResult
+- **Only directories are nodes.** Files are folded into their directory's `size` and `file_count`. This keeps memory proportional to the number of directories rather than files. Consequently, a directory's `size` is usually larger than the sum of its children's sizes; the difference is files directly inside it. Views must use `node.size`, not the children's sum, as the whole.
+- `ScanResult` wraps the root with totals, the scan duration, and `errors: Vec<ScanError>` for entries that were skipped.
+
+## Scan Lifecycle
+
+### Scanner (`fs/scanner.rs`)
+
+`Scanner::start_scan(path, options)`:
+1. Cancels any running scan (its result will be discarded)
+2. Creates a fresh `mpsc` channel and `Arc<AtomicBool>` cancel flag for this scan
+3. Spawns a thread that walks the tree and finally sends `Completed(Result<ScanResult, ScanError>)`
+
+Because every scan has its own channel, a superseded scan cannot deliver its result to a newer one; its sends simply fail once the receiver is dropped.
+
+Inside the thread, a `ScanContext` is threaded through the recursion. It holds running counters (files, directories, bytes), collected non-fatal errors, and the time of the last progress message. Progress messages are throttled to one every 50 ms.
+
+Error policy:
+- Failing to read the **root** directory fails the scan (`PathNotFound`, `PermissionDenied`, …)
+- Failing to read anything **below** the root is recorded in `ScanResult::errors` and skipped
+- `Cancelled` propagates straight up
+
+Symlinks are not followed unless `ScanOptions::follow_symlinks` is set (it is never set from the UI today). `DirEntry::metadata` does not follow links, so a link is counted as a small file. On Windows, Rust reports junctions as symlinks too.
+
+### UI side (`app.rs`)
+
+The app holds the scan as an enum, so view data cannot exist without a result or outlive it:
+
 ```rust
-struct ScanResult {
-    root: DirectoryNode,
-    total_size: u64,
-    total_files: usize,
-    total_dirs: usize,
-    scan_duration: Duration,
-    errors: Vec<ScanError>,
+enum ScanState {
+    Idle,
+    Scanning { progress: Option<ScanProgress> },
+    Loaded(Box<LoadedScan>),
+}
+
+struct LoadedScan {
+    result: Arc<ScanResult>,
+    tree_view: TreeViewData,
+    tree_map: TreeMapData,
+    pie_chart: PieChartData,
 }
 ```
 
-### VisualizationData
-```rust
-struct VisualizationData {
-    nodes: Vec<RenderNode>,
-    bounds: Rect,
-    color_scheme: ColorScheme,
-    interaction_state: InteractionState,
-}
+Each frame, `handle_events` calls `Scanner::poll()`, which drains the channel and returns either the final result or the latest progress:
+
+```
+Idle ──start_scan──▶ Scanning ──Finished(Ok)──▶ Loaded
+  ▲                    │  │                        │
+  └──Finished(Err)─────┘  └──cancel──▶ Idle        └──start_scan──▶ Scanning
 ```
 
-## Concurrency Model
+While a scan is running the app requests a repaint every 100 ms, so progress keeps updating without user input.
 
-### Async Scanning
-- **Background Tasks**: Directory scanning runs in background threads
-- **Progress Updates**: Regular progress updates to UI
-- **Cancellation**: User can cancel long-running scans
-- **Error Handling**: Graceful handling of file system errors
+The three view-data structs share a single `Arc<ScanResult>`; the tree is never copied.
 
-### State Management
-- **Single Source of Truth**: Application state managed centrally
-- **Immutable Updates**: State updates create new state objects
-- **Event-Driven**: UI updates triggered by state changes
+## Views
 
-## Performance Considerations
+Each view is split into a **data** struct (per-scan state: current directory, selection, hover, view options) and a **renderer** (display parameters). `Renderer::render(ui, &mut data)` draws one frame and returns a `…Response` with `clicked`, `double_clicked` and `right_clicked` paths. `app.rs` reacts to double-clicks in the TreeMap and Pie Chart by calling `navigate_to`; right-clicks are only logged for now.
 
-### Memory Usage
-- **Streaming**: Process large directories in chunks
-- **Garbage Collection**: Efficient memory cleanup
-- **Caching Strategy**: LRU cache for frequently accessed directories
+| View | Layout | Notes |
+|---|---|---|
+| Tree View | One row per expanded node, children sorted on the fly | Sorts references to children each frame, never clones nodes |
+| TreeMap | Squarified layout (Bruls, Huizing & van Wijk), recursing into rectangles larger than 50×50 px | Rows are measured against the size *remaining*, so leftover area represents files directly in the directory |
+| Pie Chart | Largest subdirectories clockwise from the top, then one `SliceTarget::Other` slice | `Other` covers smaller subdirectories and direct files, so slices always fill the circle |
 
-### Rendering Performance
-- **Viewport Culling**: Only render visible elements
-- **Level of Detail**: Simplified rendering for distant objects
-- **Batch Updates**: Group UI updates for efficiency
+All three use `DirectoryNode::find_by_path` to resolve the current directory, which only descends into the child whose path is a prefix of the target.
 
-## Error Handling
+Hit-testing uses `Response::hover_pos()`, and `hovered_path` is reset at the start of every frame.
 
-### File System Errors
-- **Permission Denied**: Graceful handling with user notification
-- **Path Not Found**: Clear error messages
-- **I/O Errors**: Retry logic with exponential backoff
+## Persistence
 
-### UI Error States
-- **Loading States**: Progress indicators during operations
-- **Error Messages**: User-friendly error descriptions
-- **Recovery Options**: Suggestions for resolving issues
+`DiskUsageApp::save` stores `AppState` through eframe's persistence (`app.ron` in the platform's application data directory). `AppState` contains preferences only: the view mode, the current and recent paths, and `AppSettings`. Scan results are deliberately not persisted. They can be very large and are stale by the next launch. `AppState` and `AppSettings` are `#[serde(default)]`, so state saved by an older version still loads.
 
-## Testing Strategy
+## Testing
 
-### Unit Tests
-- **Data Models**: Core data structure validation
-- **Algorithms**: Visualization and calculation algorithms
-- **Utilities**: Helper function correctness
+Unit tests live next to the code (`cargo test`):
+- `fs/scanner.rs`: scanning real temporary directories (via `tempfile`), including root-level files, max depth, a missing root, cancellation, and the `poll` round trip
+- `gui/views/treemap.rs`: squarified areas are proportional to sizes and stay inside the bounds
+- `gui/views/pie_chart.rs`: slices cover the full circle, Unicode-safe truncation, and Up navigation
+- `gui/app_state.rs`: recent-path ordering and capping
+- `utils/`: size, duration and percentage formatting, and hue wrapping
 
-### Integration Tests
-- **File System**: Cross-platform file operations
-- **Visualization**: Rendering accuracy and performance
-- **Export**: Data serialization integrity
+The rendering code itself is not covered by automated tests.
 
-### Platform Testing
-- **Windows**: NTFS file system handling
-- **Linux**: ext4/xfs file system compatibility
-- **UI Testing**: Cross-platform UI consistency
+## Known Gaps
 
-## Security Considerations
-
-### File System Access
-- **Sandboxing**: Limit file system access to selected directories
-- **Permission Validation**: Check permissions before operations
-- **Path Traversal**: Prevent directory traversal attacks
-
-### Data Privacy
-- **No Network Access**: All operations are local
-- **No Data Collection**: No telemetry or analytics
-- **Secure Export**: Safe handling of exported data
+- `data::{cache, export, filter}`, most of `visualization/`, and `gui::components::DirectoryBrowser` are placeholders that nothing calls
+- `AppSettings` has no editor; `theme`, `default_view`, `cache_size` and `auto_refresh` are not read anywhere
+- The scan is single-threaded and keeps the whole tree in memory
