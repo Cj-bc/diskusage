@@ -93,23 +93,17 @@ Instances of abusive, harassing, or otherwise unacceptable behavior may be repor
 
 ### Code Formatting
 
-We use `rustfmt` for code formatting. Configure your editor to format on save:
+We use `rustfmt` with its default settings (there is no `rustfmt.toml`). Configure your editor to format on save, or run:
 
-```toml
-# .rustfmt.toml
-edition = "2021"
-max_width = 100
-hard_tabs = false
-tab_spaces = 4
-newline_style = "Unix"
-use_small_heuristics = "Default"
+```bash
+cargo fmt
 ```
 
 ### Linting
 
-Use `clippy` for linting:
+The code is kept free of clippy warnings, tests included:
 ```bash
-cargo clippy -- -D warnings
+cargo clippy --all-targets -- -D warnings
 ```
 
 ## Code Standards
@@ -142,18 +136,18 @@ fn scan_directory(path: &Path) -> Result<DirectoryNode, ScanError> {
     // Implementation
 }
 
-// Use custom error types
+// Use custom error types that keep the context (here, the path)
 #[derive(Debug, thiserror::Error)]
 pub enum ScanError {
     #[error("Permission denied: {path}")]
     PermissionDenied { path: PathBuf },
-    
-    #[error("Path not found: {path}")]
-    PathNotFound { path: PathBuf },
-    
-    #[error("IO error: {0}")]
-    IoError(#[from] std::io::Error),
+
+    #[error("I/O error at {path}: {message}")]
+    IoError { path: PathBuf, message: String },
 }
+
+// Avoid unwrap()/expect() outside tests, and don't index or slice strings
+// by byte offset: names can be non-ASCII. Use chars() instead.
 ```
 
 #### Documentation
@@ -162,35 +156,35 @@ pub enum ScanError {
 ///
 /// # Arguments
 /// * `path` - The path to the directory to scan
-/// * `options` - Scanning options (depth limit, filters, etc.)
+/// * `options` - Scanning options (depth limit, symlink handling)
 ///
 /// # Returns
 /// A `DirectoryNode` containing the directory structure and size information.
 ///
 /// # Errors
 /// Returns `ScanError` if the directory cannot be accessed or read.
-///
-/// # Examples
-/// ```
-/// use diskusage::Scanner;
-/// 
-/// let scanner = Scanner::new();
-/// let result = scanner.scan_directory("/home/user")?;
-/// println!("Total size: {}", result.size);
-/// ```
-pub fn scan_directory(path: &Path, options: &ScanOptions) -> Result<DirectoryNode, ScanError> {
+fn scan_directory(path: &Path, options: &ScanOptions) -> Result<DirectoryNode, ScanError> {
     // Implementation
 }
 ```
 
 #### Memory Management
 ```rust
-// Use Arc for shared data
+// Share large data through Arc instead of cloning it. The three views
+// share one scan this way; never clone a DirectoryNode tree per frame.
 use std::sync::Arc;
 
-struct AppState {
-    current_data: Arc<DirectoryNode>,
-    cache: Arc<Mutex<Cache>>,
+struct TreeMapData {
+    scan_result: Arc<ScanResult>,
+    // ...
+}
+
+// Make invalid states unrepresentable: prefer an enum over several
+// flags and Options that must be kept in sync by hand
+enum ScanState {
+    Idle,
+    Scanning { progress: Option<ScanProgress> },
+    Loaded(Box<LoadedScan>),
 }
 
 // Prefer owned data when possible
@@ -238,101 +232,52 @@ for item in items {
 }
 ```
 
-#### Parallel Processing
-```rust
-use rayon::prelude::*;
+#### Keep the UI Thread Responsive
+`eframe::App::update` runs once per frame, so it must never block. Long-running work runs on a background thread and reports back through a channel that the UI polls each frame. The scanner is the model to follow:
 
-// Use parallel iterators for CPU-intensive work
-let results: Vec<_> = items
-    .par_iter()
-    .map(|item| expensive_computation(item))
-    .collect();
+```rust
+// UI thread, every frame
+match self.scanner.poll() {
+    Some(ScanUpdate::Progress(progress)) => { /* update the status bar */ }
+    Some(ScanUpdate::Finished(result)) => { /* switch to the result */ }
+    None => {}
+}
 ```
+
+The project has no async runtime or thread-pool dependency. Discuss in an issue before adding one.
 
 ## Testing Guidelines
 
 ### Unit Tests
+Tests live in a `#[cfg(test)] mod tests` next to the code they test. Keep pure logic, such as layout math, slice calculation and formatting, in functions that don't need an `egui::Ui`, so it can be tested directly.
+
+Scanner tests build real directory trees in a temporary directory with `tempfile`:
+
 ```rust
 #[cfg(test)]
 mod tests {
     use super::*;
-    use tempfile::TempDir;
-    
+    use std::fs;
+
     #[test]
-    fn test_directory_scanning() {
-        let temp_dir = TempDir::new().unwrap();
-        let test_file = temp_dir.path().join("test.txt");
-        std::fs::write(&test_file, "test content").unwrap();
-        
-        let scanner = Scanner::new();
-        let result = scanner.scan_directory(temp_dir.path()).unwrap();
-        
-        assert_eq!(result.file_count, 1);
-        assert!(result.size > 0);
-    }
-    
-    #[test]
-    fn test_error_handling() {
-        let scanner = Scanner::new();
-        let result = scanner.scan_directory(Path::new("/nonexistent"));
-        
-        assert!(result.is_err());
-        match result.unwrap_err() {
-            ScanError::PathNotFound { .. } => {}, // Expected
-            _ => panic!("Wrong error type"),
-        }
+    fn counts_files_directly_in_root() {
+        let dir = tempfile::tempdir().unwrap();
+        fs::write(dir.path().join("a.bin"), [0u8; 100]).unwrap();
+        fs::create_dir(dir.path().join("sub")).unwrap();
+        fs::write(dir.path().join("sub").join("b.bin"), [0u8; 30]).unwrap();
+
+        let result = scan_blocking(dir.path(), ScanOptions::default()).unwrap();
+
+        assert_eq!(result.total_size, 130);
+        assert_eq!(result.total_files, 2);
     }
 }
 ```
 
-### Integration Tests
-```rust
-// tests/integration_test.rs
-use diskusage::*;
-use std::process::Command;
+A bug fix should come with a test that fails without the fix.
 
-#[test]
-fn test_full_workflow() {
-    // Test complete application workflow
-    let app = App::new();
-    let result = app.scan_and_visualize("/tmp");
-    assert!(result.is_ok());
-}
-```
-
-### Property-Based Testing
-```rust
-use proptest::prelude::*;
-
-proptest! {
-    #[test]
-    fn test_size_calculation_properties(sizes in prop::collection::vec(0u64..1000000, 0..100)) {
-        let total = sizes.iter().sum::<u64>();
-        let calculated = calculate_directory_size(&sizes);
-        
-        prop_assert_eq!(total, calculated);
-    }
-}
-```
-
-### Benchmarks
-```rust
-use criterion::{black_box, criterion_group, criterion_main, Criterion};
-
-fn bench_directory_scan(c: &mut Criterion) {
-    let test_dir = setup_test_directory();
-    
-    c.bench_function("directory_scan", |b| {
-        b.iter(|| {
-            let scanner = Scanner::new();
-            scanner.scan_directory(black_box(&test_dir))
-        })
-    });
-}
-
-criterion_group!(benches, bench_directory_scan);
-criterion_main!(benches);
-```
+### Integration Tests, Property Tests and Benchmarks
+None exist yet. Integration tests go in `tests/` and can only use the library crate's public API (for example `diskusage::Scanner`). If you add property tests or benchmarks, add `proptest` or `criterion` as dev-dependencies in the same pull request, and for criterion a `[[bench]]` entry with `harness = false`.
 
 ## Pull Request Process
 
@@ -349,11 +294,11 @@ criterion_main!(benches);
 2. **Run the full test suite**:
    ```bash
    cargo test
-   cargo clippy
-   cargo fmt -- --check
+   cargo clippy --all-targets -- -D warnings
+   cargo fmt --check
    ```
 
-3. **Update documentation** if necessary
+3. **Update documentation** if necessary. User-visible changes go in the README and USER_GUIDE.md; type and module changes go in API.md and ARCHITECTURE.md
 
 4. **Add tests** for new functionality
 
@@ -366,7 +311,7 @@ criterion_main!(benches);
 Examples:
 feat(scanner): Add parallel directory scanning
 fix(ui): Fix treemap rendering on high DPI displays
-docs(api): Update API documentation for new cache system
+docs(api): Document the Scanner polling protocol
 test(scanner): Add integration tests for permission handling
 ```
 
@@ -535,20 +480,13 @@ pub fn function(param1: Type1, param2: Type2) -> ReturnType {
    - Use `String::with_capacity()` for known sizes
    - Consider using `Cow<str>` for string data
 
-4. **Parallel processing**:
-   - Use `rayon` for CPU-intensive tasks
-   - Use `tokio` for I/O-bound operations
-   - Be mindful of thread pool sizes
+4. **Background work**:
+   - Never block in `update`; move slow work to a thread and poll a channel
+   - Anything that runs per frame must be cheap: borrow the scan tree, don't clone it, and avoid walking the whole tree
 
 ### Memory Usage Guidelines
 
-1. **Monitor memory usage**:
-   ```rust
-   #[cfg(feature = "memory-profiling")]
-   fn track_memory_usage() {
-       // Memory tracking code
-   }
-   ```
+1. **Monitor memory usage**: the whole scan tree is held in memory, one `DirectoryNode` per directory. Before and after a change that touches the data model, compare the process's memory after scanning a large directory (e.g. your home directory) in a release build
 
 2. **Use appropriate collection sizes**:
    ```rust
@@ -600,12 +538,9 @@ fn platform_specific_function() {
     // Linux/Unix implementation
 }
 
-// Use feature flags for optional platform features
-#[cfg(feature = "windows-registry")]
-fn use_registry() {
-    // Windows registry code
-}
 ```
+
+`std` hides most differences: `std::fs`, `Path` and `PathBuf` work the same everywhere. Remember that Windows paths are case-insensitive, that symlinks and junctions are not followed during scans, and that `build.rs` passes MSVC-only linker flags on Windows (see [BUILD_CONFIG.md](BUILD_CONFIG.md)).
 
 ## Release Process
 
@@ -620,7 +555,7 @@ We follow [Semantic Versioning](https://semver.org/):
 
 - [ ] All tests pass on all platforms
 - [ ] Documentation is updated
-- [ ] CHANGELOG.md is updated
+- [ ] CHANGELOG.md is updated (create it with the first release)
 - [ ] Version numbers are bumped
 - [ ] Release notes are prepared
 - [ ] Binaries are built and tested

@@ -1,106 +1,84 @@
 # Build Configuration
 
-This document describes the platform-specific build configurations implemented in `build.rs`.
+What `build.rs` and the Cargo profiles in `Cargo.toml` do. For how to build, see [BUILD.md](BUILD.md).
 
-## Platform Support
+## `build.rs`
 
-### Windows
-- **Target**: `windows`
-- **Features**:
-  - High DPI awareness
-  - Windows 7+ compatibility
-  - Console subsystem for debug builds
-  - Link-time optimization (LTO) for release builds
-  - Required system libraries: user32, shell32, ole32, comctl32
+The build script runs before every compile of the crate and prints Cargo directives depending on the target OS and architecture.
+
+### Windows (MSVC)
+- Linker flags `/OPT:REF` and `/OPT:ICF` (drop and fold unused code), and `/MANIFESTUAC:level='asInvoker'` (run without requesting elevation)
+- In release builds, `/LTCG` (link-time code generation)
+- Links `user32`, `shell32`, `ole32` and `comctl32`
+- `/SUBSYSTEM:CONSOLE` when the build script itself is compiled with debug assertions. Console is the default subsystem anyway: `main.rs` does not set `#![windows_subsystem = "windows"]`, so release builds also open a console window alongside the GUI
+
+These are MSVC linker flags and are passed for every Windows target, so the GNU toolchain (`x86_64-pc-windows-gnu`) is not expected to link.
 
 ### Linux
-- **Target**: `linux`
-- **Features**:
-  - GTK3 detection and configuration
-  - Unix permissions support
-  - Linux filesystem-specific optimizations
-  - Required system libraries: pthread, dl, m
+- Probes for `gtk+-3.0` with `pkg-config` and prints a warning if it is missing. GTK 3 is needed by `rfd` for the native folder picker
+- Links `pthread`, `dl` and `m`
 
 ### macOS
-- **Target**: `macos`
-- **Features**:
-  - Cocoa framework integration
-  - App bundle support
-  - macOS 10.12+ deployment target
-  - ARM64 (Apple Silicon) and x86_64 support
+- Links the `Cocoa`, `Foundation` and `CoreServices` frameworks
+- Sets `MACOSX_DEPLOYMENT_TARGET=10.12` with `cargo:rustc-env`. This only makes the variable visible to `env!()` in the crate; it does not change the deployment target the binary is built for
 
-## Build Features
+macOS builds are untested.
 
-### Conditional Compilation Flags
+### Other targets
+The script prints a warning for operating systems other than Windows, Linux and macOS, and for architectures other than `x86_64` and `aarch64`. It does not stop the build.
 
-The build script sets various `cfg` flags that can be used for conditional compilation:
+### `cfg` flags
+The script emits these flags, but no code reads them yet:
 
-- `target_windows` - Windows-specific code
-- `target_linux` - Linux-specific code  
-- `target_macos` - macOS-specific code
-- `unix_permissions` - Unix permission handling (Linux/macOS)
-- `gtk3_available` - GTK3 libraries detected (Linux)
-- `arch_x86_64` - x86_64 architecture
-- `arch_aarch64` - ARM64 architecture
-- `simd_sse2`, `simd_avx`, `simd_neon` - Available SIMD instruction sets
+| Flag | When |
+|---|---|
+| `target_windows`, `target_linux`, `target_macos` | Per target OS |
+| `windows_7_compatible` | Windows |
+| `gtk3_available` | Linux, if `pkg-config` finds GTK 3 |
+| `unix_permissions`, `linux_filesystems`, `macos_bundle` | Linux / macOS |
+| `arch_x86_64`, `arch_aarch64` | Per target architecture |
+| `windows_x64_optimized`, `linux_x64_optimized`, `macos_x64_optimized`, `macos_arm64_optimized` | Per OS/architecture pair |
+| `lto_enabled` | Always |
+| `release_build` / `debug_build` | Per `PROFILE` |
+| `simd_sse2`, `simd_avx`, `simd_neon` | If the target enables that feature |
 
-### Build Profiles
+If you start using one, declare it so the `unexpected_cfgs` lint knows about it, e.g. `println!("cargo::rustc-check-cfg=cfg(target_linux)");`.
 
-#### Debug Profile
-- Console subsystem enabled on Windows
-- Full debug information
-- No optimizations
-- Incremental compilation
+## Cargo features
 
-#### Release Profile
-- Optimized for size and speed
-- Link-time optimization (LTO)
-- Stripped debug information
-- Single codegen unit for maximum optimization
+`Cargo.toml` declares `profiling`, `debug-ui`, `bundle` and `embed_resources`. None has an effect yet. `build.rs` contains `setup_app_bundle` (for `bundle`) and `embed_resources` (for `embed_resources`), but nothing calls them.
 
-## Optional Features
+## Profiles
 
-### Bundle (`--features bundle`)
-- Enables application bundle creation
-- Sets bundle metadata for macOS applications
+| Setting | `dev` | `release` |
+|---|---|---|
+| `opt-level` | 0 | 3 |
+| `debug` | true | false |
+| `debug-assertions`, `overflow-checks` | on | off |
+| `lto` | off | on (fat) |
+| `codegen-units` | 256 | 1 |
+| `incremental` | on | off |
+| `panic` | unwind | abort |
 
-### Embed Resources (`--features embed_resources`)  
-- Embeds application resources into the binary
-- Includes icons and other assets
-- Windows resource file support
+`bench` inherits from `release` with debug info enabled. There are no benchmarks yet.
 
-## Usage Examples
-
-```bash
-# Standard build
-cargo build
-
-# Release build with all optimizations
-cargo build --release
-
-# Build with bundle feature (macOS)
-cargo build --features bundle
-
-# Build with embedded resources
-cargo build --features embed_resources
-
-# Cross-compilation example (Linux to Windows)
-cargo build --target x86_64-pc-windows-gnu
-```
-
-## Architecture-Specific Optimizations
-
-The build script detects the target architecture and enables appropriate optimizations:
-
-- **x86_64**: SSE2/AVX SIMD instructions where available
-- **ARM64**: NEON SIMD instructions where available
-- **Platform-specific**: Native optimization flags per OS
+Release builds are slow to link because of fat LTO and a single codegen unit; use the `dev` profile while iterating.
 
 ## Dependencies
 
-### Build Dependencies
-- `vergen` - Build information generation
-- `pkg-config` - System library detection (Linux)
+### Build dependencies
+- `pkg-config`: GTK 3 detection on Linux
 
-### Runtime Dependencies
-Platform-specific dependencies are automatically handled through Cargo.toml target-specific sections.
+### Runtime dependencies
+| Crate | Used for |
+|---|---|
+| `eframe` / `egui` 0.24 | Window, rendering and widgets; `persistence` feature for saved state |
+| `rfd` | Native folder picker |
+| `serde` | Serializing persisted state |
+| `thiserror` | `ScanError` |
+| `dirs` | Home/documents/downloads folders in `DirectoryBrowser` |
+| `log`, `env_logger` | Logging, controlled with `RUST_LOG` |
+| `winapi` (Windows only) | Not used directly. eframe 0.24 imports `winapi::um::winuser` without enabling that feature, so this crate enables it |
+
+### Dev dependencies
+- `tempfile`: temporary directories in scanner tests
