@@ -46,6 +46,18 @@ impl DirectoryNode {
         self.children.iter_mut().find(|child| child.name == name)
     }
 
+    /// Finds the node for `path` in this subtree, descending only into the
+    /// child whose path is a prefix of it.
+    pub fn find_by_path(&self, path: &Path) -> Option<&DirectoryNode> {
+        if self.path == path {
+            return Some(self);
+        }
+        self.children
+            .iter()
+            .find(|child| path.starts_with(&child.path))
+            .and_then(|child| child.find_by_path(path))
+    }
+
     pub fn total_items(&self) -> usize {
         self.file_count + self.dir_count
     }
