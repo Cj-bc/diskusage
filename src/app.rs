@@ -1,8 +1,7 @@
 use eframe::egui;
 use std::path::PathBuf;
 
-use crate::data::{DirectoryNode, ScanProgress};
-use crate::fs::Scanner;
+use crate::fs::{ScanOptions, ScanUpdate, Scanner};
 use crate::gui::AppState;
 use crate::gui::views::{TreeViewData, TreeViewRenderer, TreeMapData, TreeMapRenderer, PieChartData, PieChartRenderer};
 
@@ -38,14 +37,18 @@ impl DiskUsageApp {
     }
 
     fn handle_events(&mut self, ctx: &egui::Context) {
-        // Handle any pending events from the scanner
-        if let Some(progress) = self.scanner.get_progress() {
-            self.state.set_scan_progress(Some(progress));
-            ctx.request_repaint();
+        if self.scanner.is_scanning() {
+            // Keep polling the background scan even when no input arrives.
+            ctx.request_repaint_after(std::time::Duration::from_millis(100));
         }
 
-        if let Some(result) = self.scanner.take_result() {
-            match result {
+        match self.scanner.poll() {
+            None => {}
+            Some(ScanUpdate::Progress(progress)) => {
+                self.state.set_scan_progress(Some(progress));
+                ctx.request_repaint();
+            }
+            Some(ScanUpdate::Finished(result)) => match result {
                 Ok(scan_result) => {
                     // Create TreeView, TreeMap, and PieChart data
                     self.tree_view_data = Some(TreeViewData::new(scan_result.clone()));
@@ -62,8 +65,7 @@ impl DiskUsageApp {
                     self.tree_map_data = None;
                     self.pie_chart_data = None;
                 }
-            }
-            ctx.request_repaint();
+            },
         }
     }
 
@@ -178,6 +180,7 @@ impl DiskUsageApp {
                     
                     if ui.button("Cancel").clicked() {
                         self.scanner.cancel();
+                        self.state.set_scanning(false);
                     }
                 }
             } else if let Some(result) = &self.state.scan_result {
@@ -207,7 +210,11 @@ impl DiskUsageApp {
         self.state.set_scan_progress(None);
         self.state.clear_error();
         
-        self.scanner.start_scan(path);
+        let options = ScanOptions {
+            follow_symlinks: self.state.settings.follow_symlinks,
+            max_depth: self.state.settings.max_scan_depth,
+        };
+        self.scanner.start_scan(path, options);
     }
 }
 

@@ -1,5 +1,5 @@
 use serde::{Deserialize, Serialize};
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 use std::time::{Duration, SystemTime};
 use thiserror::Error;
 
@@ -36,11 +36,6 @@ impl DirectoryNode {
 
     pub fn add_child(&mut self, child: DirectoryNode) {
         self.children.push(child);
-    }
-
-    pub fn calculate_size(&mut self) -> u64 {
-        self.size = self.children.iter().map(|child| child.size).sum();
-        self.size
     }
 
     pub fn find_child(&self, name: &str) -> Option<&DirectoryNode> {
@@ -171,6 +166,18 @@ pub enum ScanError {
     
     #[error("Other error: {message}")]
     Other { message: String },
+}
+
+impl ScanError {
+    /// Classifies an I/O error that occurred while accessing `path`.
+    pub fn from_io(path: &Path, error: &std::io::Error) -> Self {
+        let path = path.to_path_buf();
+        match error.kind() {
+            std::io::ErrorKind::PermissionDenied => ScanError::PermissionDenied { path },
+            std::io::ErrorKind::NotFound => ScanError::PathNotFound { path },
+            _ => ScanError::IoError { path, message: error.to_string() },
+        }
+    }
 }
 
 impl From<std::io::Error> for ScanError {
