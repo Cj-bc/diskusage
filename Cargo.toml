@@ -18,55 +18,28 @@ eframe = { version = "0.24", features = ["persistence"] }
 # File dialogs
 rfd = "0.12"
 
-# Async runtime
-tokio = { version = "1.0", features = ["full"] }
-
 # Serialization
 serde = { version = "1.0", features = ["derive"] }
-serde_json = "1.0"
-toml = "0.8"
 
 # File system utilities
 dirs = "5.0"
-walkdir = "2.4"
 
 # Error handling
 thiserror = "1.0"
-anyhow = "1.0"
 
 # Logging
 log = "0.4"
 env_logger = "0.10"
 
-# Performance
-rayon = "1.7"
-
-# Time handling
-chrono = { version = "0.4", features = ["serde"] }
-
-# Platform-specific dependencies
 [target.'cfg(windows)'.dependencies]
-winreg = "0.50"
-winapi = { version = "0.3", features = ["winuser", "shellapi", "commdlg"] }
-windows = { version = "0.52", features = [
-    "Win32_Foundation",
-    "Win32_System_SystemInformation",
-    "Win32_Storage_FileSystem",
-    "Win32_System_Threading",
-    "Win32_System_Memory",
-] }
-
-[target.'cfg(unix)'.dependencies]
-libc = "0.2"
-nix = "0.27"
+# Not used directly: eframe 0.24 imports `winapi::um::winuser` without
+# enabling that feature itself, so it only builds when we turn it on.
+winapi = { version = "0.3", features = ["winuser"] }
 
 [dev-dependencies]
-criterion = { version = "0.5", features = ["html_reports"] }
 tempfile = "3.8"
-proptest = "1.4"
 
 [build-dependencies]
-vergen = { version = "8.2", features = ["build", "cargo", "git", "gitcl", "rustc"] }
 pkg-config = "0.3"
 
 # Profile configurations
